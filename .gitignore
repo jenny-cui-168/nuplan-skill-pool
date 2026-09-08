@@ -1,0 +1,19 @@
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+data/*.npy
+outputs/
+logs/
+*.zip
+*.tar.gz
+
+# Local nuPlan datasets and extracted trajectories
+nuplan/
+dataset/
+*.db
+*.db-*
+*.sqlite
+*.sqlite3
+ego_trajs*.npy
+data/*_metadata.json

@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "nuplan-skill-pool"
+version = "0.1.0"
+description = "Extract a non-clustered 32/64-entry driving skill pool from an 8-D trajectory VAE"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+  "numpy>=1.19",
+  "torch>=1.12",
+  "matplotlib>=3.5",
+]
+
+[project.optional-dependencies]
+nuplan = ["nuplan-devkit"]
+test = ["pytest>=7"]
+
+[project.scripts]
+skill-pool = "skill_pool.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["skill_pool*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
