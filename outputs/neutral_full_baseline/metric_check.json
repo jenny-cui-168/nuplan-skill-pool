@@ -1,0 +1,22 @@
+{
+  "eigenvalues": [
+    0.00012335518532693613,
+    0.00020934695199641674,
+    0.00028588447154895735,
+    0.0005801378204319753,
+    0.0007521748690595711,
+    0.031897495247437326,
+    0.14460105520185307,
+    3.029106917172818
+  ],
+  "min_eigenvalue": 0.00012335518532693613,
+  "max_eigenvalue": 3.029106917172818,
+  "condition_number": 24555.97556880173,
+  "symmetric": true,
+  "positive_definite": true,
+  "contains_nan": false,
+  "contains_inf": false,
+  "passed": true,
+  "lambda": 0.0001,
+  "formula": "J_D(z0)^T J_D(z0)/60 + lambda*I"
+}

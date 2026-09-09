@@ -144,3 +144,46 @@ held-out/construction 占比比值在 [0.5,2]；单 log 占某主要类型 ≥80
 
 结果位于 `splits/`，图位于 `outputs/split/`。当前 log_name 是 devkit 定义的数据库分段名；
 这是 log 级隔离，不额外声称同一天同一车辆的不同日志分段也互相隔离。
+
+## Construction-only V1 baseline（基于 63ccd91）
+
+最新产物在 [`outputs/v1/`](outputs/v1/)，中性检查在
+[`outputs/neutral_construction/`](outputs/neutral_construction/)，完整运行记录见
+[RUN_REPORT.md](RUN_REPORT.md)。原全数据中性结果逐文件保留在
+`outputs/neutral_full_baseline/`，旧 `outputs/neutral/` 也保持不变。
+
+```bash
+OMP_NUM_THREADS=1 MPLCONFIGDIR=/tmp/neutral-mpl python -m skill_pool.cli neutral-check \
+  --trajectories data/ego_trajs.npy --checkpoint weights/trajectory_vae_8d_best.pth \
+  --construction-indices splits/construction_indices.npy --output-dir outputs/neutral_construction
+# 打开中性检查两张图，确认通过；visual_review.json 记录目视结论及被检查产物 SHA256。
+OMP_NUM_THREADS=1 MPLCONFIGDIR=/tmp/neutral-mpl python -m skill_pool.cli build-v1 \
+  --trajectories data/ego_trajs.npy --checkpoint weights/trajectory_vae_8d_best.pth \
+  --provenance data/ego_trajs_provenance.json --seed 7
+OMP_NUM_THREADS=1 MPLCONFIGDIR=/tmp/neutral-mpl python -m pytest -q
+```
+
+`build-v1` 强制检查 construction-only 中性来源、精确 selection_indices、自动检查、
+目视记录及其哈希；检查失败则在编码和选择前停止。首次或产物改变后须重新检查图像并
+记录 `visual_review.json`，不会由建库命令自动把视觉验收标记为通过。已提交的目视记录
+可用于复现完全相同的产物。比较函数为 `skill_pool.v1.compare_neutrals`。
+
+冻结 VAE 的 encoder 均值可对全部有效行批量计算，但 `construction_latents.npy` 与
+`heldout_latents.npy` 分别绑定同目录对应 `*_indices.npy`。`all_latents.npy` 的第 i 行
+对应 `all_latent_source_indices.npy[i]`。Pool 选择器只接收 construction latent 和原始
+行号；方向、0.995 强度裁剪和四档强度分位数全在 construction 计算。输出 .npz/.pt
+保存 `selection_split=construction`、原始 source_indices、token、来源轨迹及解码轨迹。
+
+K=32/64 均保留未去重 baseline。`duplicate_diagnostics.json` 保存所有无序技能对 ADE、
+分位数、最接近的 10 对及多个参考阈值的敏感性计数，不指定最终去重阈值、不删除技能。
+近静止敏感性同时使用平均逐帧速度 ≤t m/s 和最大距原点半径 ≤3t m，t 为
+0.05/0.1/0.25/0.5；速度包含原点到首个 future 点，解码抖动会影响此值。
+
+`report.json` 分别保存 construction/heldout 的 minADE、独立最小 minFDE、
+FDE-at-minADE、使用技能数、逐技能分配次数及逐类型指标。pairwise ADE 是同一个 Pool 的
+属性，不随评估集合变化。`coverage_<split>_<K>.npz` 保存逐样本距离、最近技能及原始行号。
+空类别指标为 null；样本 <30 仅作为描述性不足标记，≥30 也不自动构成统计泛化证明。
+图中 best/median/worst 是对全部 held-out minADE 稳定排序后取首项、中间项和末项。
+
+此处 held-out 未参与中性估计和 Pool 拟合；冻结 checkpoint 原训练数据与这些 log 是否
+独立尚未核实，因此这是 Pool 构建阶段的 held-out 评估。未修改或重训 VAE。

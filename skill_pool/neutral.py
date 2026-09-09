@@ -106,7 +106,7 @@ def plot_diagnostics(out, target, raw, decoded, records, dt):
     fig.tight_layout(); fig.savefig(out / 'neutral_candidates.png', dpi=180); plt.close(fig)
 
 
-def run_neutral_check(trajectories_path, checkpoint_path, output_dir, tokens_path=None, dt=0.1, damping=1e-4, batch_size=1024):
+def run_neutral_check(trajectories_path, checkpoint_path, output_dir, tokens_path=None, dt=0.1, damping=1e-4, batch_size=1024, selection_indices=None):
     if not np.isfinite(damping) or damping <= 0 or batch_size < 1:
         raise ValueError('positive damping and batch_size required')
     trajectories_path = Path(trajectories_path)
@@ -120,7 +120,12 @@ def run_neutral_check(trajectories_path, checkpoint_path, output_dir, tokens_pat
     # Never compact source rows: saved indices refer directly to the input file.
     normal_speeds = []
     indices = []
-    for i, traj in enumerate(raw):
+    selected = np.arange(len(raw)) if selection_indices is None else np.asarray(selection_indices)
+    if selected.ndim != 1 or selected.dtype.kind not in 'iu' or len(selected) == 0 or len(np.unique(selected)) != len(selected) or np.any((selected < 0) | (selected >= len(raw))):
+        raise ValueError('Invalid selection indices')
+    selected = np.sort(selected)
+    for i in selected:
+        traj = raw[i]
         if not np.isfinite(traj).all():
             continue
         m = describe(traj, dt)
@@ -154,7 +159,10 @@ def run_neutral_check(trajectories_path, checkpoint_path, output_dir, tokens_pat
     metric_report = {**metric_diagnostics(metric), 'lambda': damping, 'formula': 'J_D(z0)^T J_D(z0)/60 + lambda*I'}
     checks = dict(original=neutral_checks(raw[source], dt), decoded=neutral_checks(decoded[best], dt), metric=metric_report['passed'])
     checks['passed'] = checks['original']['passed'] and checks['decoded']['passed'] and checks['metric']
-    report = dict(reference_speed_mps=v_ref,
+    from .splits import sha256
+    report = dict(selection_split='construction' if selection_indices is not None else 'full',
+        selection_count=len(selected), trajectory_sha256=sha256(trajectories_path),
+        checkpoint_sha256=sha256(checkpoint_path), reference_speed_mps=v_ref,
         reference_speed_method='Median of per-trajectory mean speeds, including origin-to-first-future-point; finite, every Y step > 0, mean speed in [2,25] m/s',
         normal_motion_count=len(normal_speeds), normal_speed_quantiles_mps=np.quantile(normal_speeds, [0.1, 0.25, 0.5, 0.75, 0.9]).tolist(),
         source_candidate_count=len(indices), decoded_eligible_count=len(order),
@@ -164,6 +172,7 @@ def run_neutral_check(trajectories_path, checkpoint_path, output_dir, tokens_pat
         thresholds=LIMITS, original=records[0]['original'], decoded=records[0]['decoded'],
         original_decoded_ade_m=records[0]['original_decoded_ade_m'], automatic_checks=checks, top_candidates=records)
     out = Path(output_dir); out.mkdir(parents=True, exist_ok=True)
+    np.save(out / 'selection_indices.npy', selected)
     for name, value in dict(neutral_target=target, neutral_source_index=np.array(source), neutral_source_token=np.array(str(tokens[source])), neutral_source_trajectory=raw[source], z0=z0, neutral_decoded=decoded[best], G0=metric).items():
         np.save(out / (name+'.npy'), value)
     for name, value in [('neutral_check', report), ('metric_check', metric_report)]:

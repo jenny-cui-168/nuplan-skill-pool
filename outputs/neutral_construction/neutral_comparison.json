@@ -1,0 +1,81 @@
+{
+  "full": {
+    "neutral_source_index": 8052,
+    "reference_speed_mps": 9.76328751379451,
+    "decoded": {
+      "forward_displacement_m": 29.286865234375,
+      "final_lateral_displacement_m": 0.05885349214076996,
+      "max_lateral_displacement_m": 0.05885349214076996,
+      "mean_speed_mps": 9.762910499228814,
+      "speed_std_mps": 0.18713751921628471,
+      "speed_range_mps": 0.8564436355794616,
+      "heading_change_deg": 2.989624559002452,
+      "max_heading_deg": 1.9083106397534237,
+      "min_forward_step_m": 0.9346485137939453,
+      "target_ade_m": 0.02888067501354051
+    },
+    "original": {
+      "forward_displacement_m": 29.373266220092773,
+      "final_lateral_displacement_m": 0.0030084410682320595,
+      "max_lateral_displacement_m": 0.05271231010556221,
+      "mean_speed_mps": 9.791173930810487,
+      "speed_std_mps": 0.09311410573356824,
+      "speed_range_mps": 0.3613596150259326,
+      "heading_change_deg": 0.8316551848229123,
+      "max_heading_deg": 0.529194360807527,
+      "min_forward_step_m": 0.9626736640930176,
+      "target_ade_m": 0.05224359871441398
+    },
+    "G0_eigenvalues": [
+      0.00012335518532693613,
+      0.00020934695199641674,
+      0.00028588447154895735,
+      0.0005801378204319753,
+      0.0007521748690595711,
+      0.031897495247437326,
+      0.14460105520185307,
+      3.029106917172818
+    ]
+  },
+  "construction": {
+    "neutral_source_index": 8052,
+    "reference_speed_mps": 9.755823622614411,
+    "decoded": {
+      "forward_displacement_m": 29.286865234375,
+      "final_lateral_displacement_m": 0.05885349214076996,
+      "max_lateral_displacement_m": 0.05885349214076996,
+      "mean_speed_mps": 9.762910499228814,
+      "speed_std_mps": 0.18713751921628471,
+      "speed_range_mps": 0.8564436355794616,
+      "heading_change_deg": 2.989624559002452,
+      "max_heading_deg": 1.9083106397534237,
+      "min_forward_step_m": 0.9346485137939453,
+      "target_ade_m": 0.027780387232493917
+    },
+    "original": {
+      "forward_displacement_m": 29.373266220092773,
+      "final_lateral_displacement_m": 0.0030084410682320595,
+      "max_lateral_displacement_m": 0.05271231010556221,
+      "mean_speed_mps": 9.791173930810487,
+      "speed_std_mps": 0.09311410573356824,
+      "speed_range_mps": 0.3613596150259326,
+      "heading_change_deg": 0.8316551848229123,
+      "max_heading_deg": 0.529194360807527,
+      "min_forward_step_m": 0.9626736640930176,
+      "target_ade_m": 0.050798810725624845
+    },
+    "G0_eigenvalues": [
+      0.00012335518532693613,
+      0.00020934695199641674,
+      0.00028588447154895735,
+      0.0005801378204319753,
+      0.0007521748690595711,
+      0.031897495247437326,
+      0.14460105520185307,
+      3.029106917172818
+    ]
+  },
+  "latent_euclidean_distance": 0.0,
+  "decoded_trajectory_ADE_m": 0.0,
+  "reference_speed_change_mps": -0.007463891180098159
+}

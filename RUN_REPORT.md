@@ -255,3 +255,331 @@ OMP_NUM_THREADS=1 MPLCONFIGDIR=/tmp/neutral-mpl python -m pytest -q
 22 passed in 6.87s
 ```
 测试覆盖整 log 隔离、索引隔离/合法/全覆盖、相同 seed 可复现、输入行重排下 log 分组稳定、长度及行 token 对齐、多标签恢复、歧义和缺失拒绝、提取失败对齐保护、分布异常检测及上述真实集中限制、真实划分和 PNG 文件、固定 baseline 哈希。
+
+
+## 2026-09-09 Construction-only V1 baseline 与 held-out 评估
+
+基于提交 63ccd91。只使用 construction 的 46,514 条（42 logs）拟合中性配置、方向、强度和技能选择；held-out 的 11,478 条（10 logs）只用于独立 coverage 评估和展示样例。没有改变 split，没有调整或重新训练 VAE，没有实现严格 geodesic Log，没有接入 PufferDrive。
+
+### 中性验收先行
+
+原 outputs/neutral 完整复制为 outputs/neutral_full_baseline，逐文件哈希一致且旧目录不变。新的 outputs/neutral_construction 从 construction_indices 开始重新统计、筛选及解码排序，并保存 selection_indices.npy。原全数据结果只用于建库无关的中性对比，不参与新的估计或选择。
+
+- 新旧来源索引均为 8052；这是重新筛选的结果，不是强制沿用。
+- 全数据参考速度 9.7632875138 m/s；construction-only 为 9.7558236226 m/s，变化 -0.0074638912 m/s。
+- 新旧 z0 欧氏距离为 0，D(z0) 间 ADE 为 0；G0 全部特征值相同。
+- 新解码对新标准轨迹 ADE 为 0.0277804 m；最大/最终横移 0.0588535 m，速度标准差 0.1871375 m/s，航向范围 2.98962°。
+- 自动检查通过。代理在建库之前通过图像工具打开并目视检查 neutral_check.png 和 neutral_candidates.png：仍为直线近似匀速，有小幅逐帧抖动，无明显转弯、横移或持续加减速。结果和文件哈希保存在 visual_review.json，不声称用户本人已审阅。
+- build-v1 在编码或选择前验证自动/目视检查、construction 精确索引、来源和产物哈希，失败则停止。
+
+完整新旧对比：[neutral_comparison.json](outputs/neutral_construction/neutral_comparison.json)。新旧 G0 特征值：
+```json
+[
+  0.00012335518532693613,
+  0.00020934695199641674,
+  0.00028588447154895735,
+  0.0005801378204319753,
+  0.0007521748690595711,
+  0.031897495247437326,
+  0.14460105520185307,
+  3.029106917172818
+]
+```
+
+### 执行命令与数据流
+
+```bash
+OMP_NUM_THREADS=1 MPLCONFIGDIR=/tmp/neutral-mpl python -m skill_pool.cli neutral-check --trajectories data/ego_trajs.npy --checkpoint weights/trajectory_vae_8d_best.pth --construction-indices splits/construction_indices.npy --output-dir outputs/neutral_construction
+# 检查图像并写入 visual_review.json 后才执行：
+OMP_NUM_THREADS=1 MPLCONFIGDIR=/tmp/neutral-mpl python -m skill_pool.cli build-v1 --trajectories data/ego_trajs.npy --checkpoint weights/trajectory_vae_8d_best.pth --provenance data/ego_trajs_provenance.json --seed 7
+OMP_NUM_THREADS=1 MPLCONFIGDIR=/tmp/neutral-mpl python -m pytest -q
+```
+
+中性对比调用 skill_pool.v1.compare_neutrals('outputs/neutral_full_baseline', 'outputs/neutral_construction')。图像补全后仅用已保存 coverage 和 pool 结果重绘，未根据 held-out 指标重新选择技能。
+
+encoder 以冻结、eval 的均值编码全部有效行。all_latents.npy 为 (57992,8)，其行号映射保存于 all_latent_source_indices.npy；construction_latents.npy 为 (46514,8)，heldout_latents.npy 为 (11478,8)，分别配套 construction_indices.npy 与 heldout_indices.npy。
+
+Pool 选择器只接收 construction_latents 和 construction_indices。保留 v_i≈z_i−z0 和 G0=JᵀJ/60+1e-4 I，0.995 强度裁剪、spherical FPS 和四档 [0.25,0.4666667,0.6833333,0.90] 强度分位数都只在 construction 计算。两组 Pool 选择完成后才开始 held-out 评估。source_indices 始终是原始 57,992 行的索引，.npz/.pt 同时保存 source_tokens、source_trajectories 和 selection_split=construction；来源全部通过 construction membership 且与 held-out 无交集。
+
+### 总体结果（米）
+
+| K | 评估集合 | n | minADE | minFDE | FDE-at-minADE | 使用技能数 |
+|---|---|---:|---:|---:|---:|---:|
+| 32 | construction | 46514 | 0.578212 | 1.168736 | 1.319720 | 32/32 |
+| 32 | heldout | 11478 | 0.636949 | 1.266348 | 1.401052 | 29/32 |
+| 64 | construction | 46514 | 0.437892 | 0.910570 | 1.043679 | 64/64 |
+| 64 | heldout | 11478 | 0.468211 | 0.965268 | 1.081185 | 58/64 |
+
+minFDE 独立按终点最小距离计算，FDE-at-minADE 为 ADE 最近技能的终点距离。近邻按完整 30 点轨迹 ADE，平分时选择较小 skill ID。Pairwise ADE 是同一 Pool 属性，construction 和 held-out 共享相同数值：
+
+| K | 最小 pairwise ADE | 平均 pairwise ADE | p01 | p05 | p50 | p95 |
+|---|---:|---:|---:|---:|---:|---:|
+| 32 | 1.3595215e-05 | 5.916738 | 0.086973 | 0.205404 | 5.534096 | 15.211849 |
+| 64 | 2.2281691e-05 | 4.484090 | 0.109250 | 0.206041 | 2.074825 | 15.049673 |
+
+逐技能分配次数（按 skill ID 0…K−1）：
+```json
+{
+  "32": {
+    "construction": [
+      2357,
+      1877,
+      2977,
+      2425,
+      262,
+      56,
+      20627,
+      3546,
+      178,
+      162,
+      115,
+      11,
+      385,
+      122,
+      106,
+      890,
+      204,
+      41,
+      231,
+      2209,
+      287,
+      81,
+      99,
+      3026,
+      147,
+      54,
+      659,
+      1914,
+      71,
+      893,
+      482,
+      20
+    ],
+    "heldout": [
+      841,
+      329,
+      284,
+      1082,
+      106,
+      18,
+      5096,
+      1035,
+      37,
+      25,
+      12,
+      4,
+      103,
+      25,
+      13,
+      212,
+      34,
+      0,
+      34,
+      520,
+      111,
+      0,
+      0,
+      691,
+      36,
+      9,
+      145,
+      423,
+      10,
+      164,
+      75,
+      4
+    ]
+  },
+  "64": {
+    "construction": [
+      2254,
+      2485,
+      2351,
+      2201,
+      147,
+      18334,
+      2549,
+      2683,
+      123,
+      123,
+      18,
+      51,
+      66,
+      29,
+      22,
+      138,
+      72,
+      20,
+      27,
+      13,
+      119,
+      65,
+      31,
+      52,
+      75,
+      91,
+      232,
+      623,
+      58,
+      26,
+      46,
+      91,
+      43,
+      27,
+      370,
+      22,
+      88,
+      271,
+      110,
+      34,
+      18,
+      104,
+      15,
+      1362,
+      129,
+      1203,
+      958,
+      1361,
+      78,
+      38,
+      141,
+      161,
+      110,
+      85,
+      436,
+      766,
+      1375,
+      91,
+      516,
+      530,
+      45,
+      788,
+      11,
+      13
+    ],
+    "heldout": [
+      759,
+      346,
+      247,
+      1072,
+      71,
+      4243,
+      937,
+      686,
+      27,
+      11,
+      4,
+      5,
+      24,
+      19,
+      2,
+      29,
+      0,
+      8,
+      0,
+      0,
+      14,
+      7,
+      15,
+      2,
+      16,
+      16,
+      35,
+      148,
+      7,
+      3,
+      12,
+      18,
+      21,
+      20,
+      63,
+      3,
+      16,
+      39,
+      25,
+      6,
+      2,
+      5,
+      0,
+      230,
+      0,
+      89,
+      372,
+      430,
+      12,
+      7,
+      34,
+      90,
+      22,
+      43,
+      183,
+      205,
+      231,
+      0,
+      122,
+      289,
+      4,
+      116,
+      6,
+      10
+    ]
+  }
+}
+```
+
+### 场景覆盖
+
+下表列出各类数量及 minADE；完整逐类型 minFDE、FDE-at-minADE、使用数、分配次数与解释见 [report.json](outputs/v1/report.json)。0 样本指标为 null，不伪造为 0。
+
+| 类型 | construction n | held-out n | K32 C ADE | K32 H ADE | K64 C ADE | K64 H ADE |
+|---|---:|---:|---:|---:|---:|---:|
+| behind_long_vehicle | 662 | 1 | 0.162509 | 0.253575 | 0.170108 | 0.192673 |
+| changing_lane | 3 | 2 | 1.630468 | 2.671831 | 1.216135 | 1.587619 |
+| following_lane_with_lead | 26 | 0 | 1.025782 | null | 0.898666 | null |
+| high_lateral_acceleration | 117 | 43 | 1.355134 | 1.185401 | 0.936691 | 0.894794 |
+| high_magnitude_speed | 16071 | 3953 | 0.543601 | 0.615310 | 0.421492 | 0.523229 |
+| low_magnitude_speed | 1668 | 364 | 0.630949 | 0.509923 | 0.572743 | 0.468334 |
+| near_multiple_vehicles | 658 | 177 | 1.249784 | 2.365741 | 0.983195 | 1.936035 |
+| starting_left_turn | 211 | 57 | 1.175866 | 1.314800 | 1.064146 | 1.114644 |
+| starting_right_turn | 100 | 30 | 1.273883 | 1.423025 | 1.049622 | 1.373210 |
+| starting_straight_traffic_light_intersection_traversal | 136 | 37 | 1.328067 | 1.481346 | 1.051975 | 1.127983 |
+| stationary_in_traffic | 16114 | 4076 | 0.073364 | 0.088140 | 0.069212 | 0.076026 |
+| stopping_with_lead | 64 | 0 | 0.943072 | null | 0.845951 | null |
+| traversing_pickup_dropoff | 10620 | 2692 | 1.335259 | 1.354938 | 0.950441 | 0.840109 |
+| waiting_for_pedestrian_to_cross | 64 | 46 | 0.111850 | 0.836127 | 0.111590 | 0.714914 |
+
+behind_long_vehicle 的 held-out 只有 1 条，following_lane_with_lead 和 stopping_with_lead 为 0 条，不作泛化结论。所有类型指标只作描述性 coverage；<30 条额外标记样本不足，≥30 条也不自动构成统计泛化证明。本阶段 held-out 不参与新的中性和 Pool 拟合；冻结 VAE 的原训练日志是否与 held-out 独立尚未证实，因此这里明确评估的是 Pool 构建的 held-out coverage。
+
+### 近重复、近静止与图像检查
+
+未施加任何最终去重阈值或删除技能。完整无序技能对（K32:496 对，K64:2016 对）按 ADE 升序保存在 duplicate_diagnostics.json；列出最接近的 10 对并全部绘制于 duplicate_skill_pairs.png。阈值扫描只是诊断，不参与选择。
+
+| ADE 阈值（m） | K32 对数 | K64 对数 |
+|---:|---:|---:|
+| 1e-06 | 0 | 0 |
+| 0.001 | 3 | 1 |
+| 0.01 | 3 | 3 |
+| 0.05 | 3 | 4 |
+| 0.1 | 6 | 13 |
+| 0.25 | 33 | 150 |
+| 0.5 | 102 | 556 |
+
+解码严格静止计数（最大距原点半径≤1e-6 m）均为 0。近静止诊断同时要求平均逐帧速度≤t m/s、半径≤3t m：t=0.05/0.1 时均为 0，t=0.25/0.5 时均为 3 个（skill 4、5、6）。这是候选阈值敏感性，不是最终停车定义。静止附近的 VAE 厘米级抖动会使逐帧速度高于实际净位移速度。
+
+代理已打开并目视检查全部 8 张 V1 图：使用次数明显集中于少数近静止及常见行驶技能，技能来源不同也仍有几乎重合的解码轨迹。nearest_skill_examples 来自 held-out ADE 全排序的最好/中位/最差。K32 最差 row 35772（changing_lane）ADE 3.650 m，明显右向曲线未被其最近技能充分覆盖；K64 最差 row 43856（high_magnitude_speed）ADE 3.010 m，横向运动覆盖仍有限。最好样例 row 40016 接近静止，ADE 约 0.012 m，放大图中的锯齿是厘米级解码抖动。未根据这些 held-out 结果调整 Pool。
+
+### 产物与验证
+
+- outputs/neutral_full_baseline/：完整原全数据中性归档。
+- outputs/neutral_construction/：neutral_check.png、neutral_candidates.png、neutral_check.json、metric_check.json、z0.npy、G0.npy、neutral_target.npy、来源及选取索引、neutral_comparison.json、visual_review.json。
+- outputs/v1/：all/construction/heldout latents 及索引映射，skill_pool_32/64.npz 与 .pt，coverage_construction/heldout_32/64.npz，report.json、duplicate_diagnostics.json。
+- 图：[skill_pool_32.png](outputs/v1/skill_pool_32.png)、[skill_pool_64.png](outputs/v1/skill_pool_64.png)、[skill_usage_32.png](outputs/v1/skill_usage_32.png)、[skill_usage_64.png](outputs/v1/skill_usage_64.png)、[nearest_skill_examples_32.png](outputs/v1/nearest_skill_examples_32.png)、[nearest_skill_examples_64.png](outputs/v1/nearest_skill_examples_64.png)、[duplicate_skill_pairs.png](outputs/v1/duplicate_skill_pairs.png)、[coverage_comparison.png](outputs/v1/coverage_comparison.png)。
+
+全部测试：
+```text
+................................                                         [100%]
+32 passed in 12.28s
+```
+新增验收覆盖：中性统计忽略 held-out（改变 held-out 速度后结果不变）；自动/目视失败阻止建库；非法 split 拒绝；选择器只收到 construction；同 seed 改变 held-out 轨迹 1000 倍后方向、强度、来源及 latent 完全不变；K32/64 形状、.pt/.npz 一致性；原始 source 回指、完整/分组编码映射；分组 coverage 独立计算和 minFDE/FDE-at-minADE 区分；空场景保留 null；合成重复轨迹识别；全部正式产物与原中性归档哈希。
+
+输入 checkpoint SHA256：9918138beece445613918bc2c2e9528df3ef8837844347a47e8f15dff96300a9。数据 SHA256：183ea120cb1dc53367ed19f55d6cd80269b08d849010ab27b639677b28c9427f。与此前 baseline 输入一致。

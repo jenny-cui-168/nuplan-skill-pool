@@ -1,0 +1,14 @@
+{
+  "passed": true,
+  "reviewer": "Codex image-tool visual inspection",
+  "conclusion": "Opened neutral_check.png and neutral_candidates.png after construction-only run. Straight forward decoded path; maximum lateral displacement 0.05885 m, speed std 0.18714 m/s. Small framewise jitter, no marked turn, lateral shift or sustained acceleration/deceleration.",
+  "artifact_sha256": {
+    "z0.npy": "5759d9a42508f46116aaf5337357dbff0a220fe351f9617dce919cf3ec6d5a2a",
+    "G0.npy": "d039ed7ef828698ca974e60424f67b3de727b7afe639cc2e786d8a442e9df294",
+    "neutral_decoded.npy": "afef8b1d6813ba94bce692c627039b1dfa4814513e0a474d4f26b473eeea5686",
+    "neutral_check.png": "d473291f389f220a0e20d269a9d68bd425e34b7944df3280f0cb3d9cf94e84ef",
+    "neutral_candidates.png": "af208493e56240bbc7569cea675540db5a51abfd109f004bb58adc4124d14908",
+    "neutral_check.json": "5742343fbaa67b3f4f3147b615588588b9f786d07fbed82a31deaba362eb9bcb",
+    "selection_indices.npy": "501040f10d20da42d9535d0b254ad31c66946a7a1b2f14a49d9a03fcb313226a"
+  }
+}

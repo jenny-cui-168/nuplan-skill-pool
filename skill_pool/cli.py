@@ -35,6 +35,7 @@ def _build_parser() -> argparse.ArgumentParser:
     neutral.add_argument("--trajectories", required=True)
     neutral.add_argument("--checkpoint", required=True)
     neutral.add_argument("--tokens")
+    neutral.add_argument("--construction-indices")
     neutral.add_argument("--output-dir", default="outputs/neutral")
     neutral.add_argument("--dt", type=float, default=0.1)
     neutral.add_argument("--damping", type=float, default=1e-4)
@@ -49,6 +50,14 @@ def _build_parser() -> argparse.ArgumentParser:
     split.add_argument("--plot-dir", default="outputs/split")
     split.add_argument("--seed", type=int, default=7)
     split.add_argument("--baseline-dir", default="outputs/neutral")
+    v1 = subparsers.add_parser("build-v1", help="Construction-only pools with held-out evaluation after reviewed neutral gate")
+    v1.add_argument("--trajectories", required=True)
+    v1.add_argument("--checkpoint", required=True)
+    v1.add_argument("--provenance", required=True)
+    v1.add_argument("--split-dir", default="splits")
+    v1.add_argument("--neutral-dir", default="outputs/neutral_construction")
+    v1.add_argument("--output-dir", default="outputs/v1")
+    v1.add_argument("--seed", type=int, default=7)
     return parser
 
 
@@ -67,6 +76,9 @@ def main() -> None:
             all_scenario_types=args.all_scenario_types,
             shuffle=args.shuffle,
         )
+    elif args.command == "build-v1":
+        from .v1 import run_v1
+        result = run_v1(args.trajectories, args.checkpoint, args.provenance, args.split_dir, args.neutral_dir, args.output_dir, args.seed)
     elif args.command == "recover-provenance":
         from .splits import recover_provenance
         provenance = recover_provenance(args.trajectories, args.database_root)
@@ -76,7 +88,9 @@ def main() -> None:
         result = run_split(args.trajectories, args.provenance, args.output_dir, args.plot_dir, args.seed, args.baseline_dir)
     elif args.command == "neutral-check":
         from .neutral import run_neutral_check
-        result = run_neutral_check(args.trajectories, args.checkpoint, args.output_dir, args.tokens, args.dt, args.damping, args.batch_size)
+        import numpy as np
+        indices = np.load(args.construction_indices, allow_pickle=False) if args.construction_indices else None
+        result = run_neutral_check(args.trajectories, args.checkpoint, args.output_dir, args.tokens, args.dt, args.damping, args.batch_size, indices)
     else:
         from .pipeline import run_pipeline
 
