@@ -113,3 +113,34 @@ future 点的时间为 0.1–3.0 秒，速度包含原点到首点的区间；�
 门限是本次工程验收定义，不是通用驾驶标准。参数、前十名和全部检查记录在 JSON。
 输出包含标准轨迹、原始来源行号/token/轨迹、z0、解码轨迹、G0 和两张 PNG。
 旧 `build` 路径未接入此验收，后续建库须显式复用验收结果。
+
+## 按 nuPlan log 划分 construction / held-out
+
+现有数据优先通过只读数据库 token 关联补录来源，不重提轨迹：
+
+```bash
+python -m skill_pool.cli recover-provenance --trajectories data/ego_trajs.npy \
+  --database-root ../nuplan/dataset/nuplan-v1.1_mini/data/cache/mini
+OMP_NUM_THREADS=1 MPLCONFIGDIR=/tmp/neutral-mpl python -m skill_pool.cli split-logs \
+  --trajectories data/ego_trajs.npy --provenance data/ego_trajs_provenance.json --seed 7
+```
+
+`ego_trajs_provenance.json` 的每行保存原数组索引、scenario_token、log_name、
+scenario_type 和 database_source，并绑定轨迹/token 文件 SHA256。多标签采用与当前
+提取 devkit 一致的 `MAX(type)`（先应用原提取类型过滤），缺失或多数据库匹配时停止。
+今后的提取会先完成轨迹及全部来源字段，再同步追加成功行，避免失败造成错位。
+
+先排序唯一 log，再用 seed=7 排列，按四舍五入取 80% log。随后确定性地交换整 log，
+平衡场景类型占比及轨迹数；目标函数、初始分布和最终分布均记录在 split_report.json。
+不按单条轨迹拆分，不使用模型输出，不强制中性来源进入指定集合。数组索引始终指向
+原始 ego_trajs.npy；非有限轨迹排除且计数。固定中性四个文件由
+`outputs/neutral/baseline_config.json` 的哈希校验，划分不修改它们。
+
+主要类型定义为全体有效轨迹占比 ≥1%。分布检查同时要求两组占比绝对差 ≤10 个百分点，
+held-out/construction 占比比值在 [0.5,2]；单 log 占某主要类型 ≥80% 时明确记录集中限制，
+不把该类型从失败列表移除。本次 `behind_long_vehicle` 的 653/663 条集中在一个 log，
+因此其分布检查失败；其他主要类型通过。测试验证此限制被准确报告，测试通过不代表
+所有类型均衡。分组文件是固定可复现的数据准备产物，不表示已经完成模型评估。
+
+结果位于 `splits/`，图位于 `outputs/split/`。当前 log_name 是 devkit 定义的数据库分段名；
+这是 log 级隔离，不额外声称同一天同一车辆的不同日志分段也互相隔离。

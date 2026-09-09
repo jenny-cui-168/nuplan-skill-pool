@@ -39,6 +39,16 @@ def _build_parser() -> argparse.ArgumentParser:
     neutral.add_argument("--dt", type=float, default=0.1)
     neutral.add_argument("--damping", type=float, default=1e-4)
     neutral.add_argument("--batch-size", type=int, default=1024)
+    recover = subparsers.add_parser("recover-provenance", help="Recover row metadata from existing tokens and databases")
+    recover.add_argument("--trajectories", required=True)
+    recover.add_argument("--database-root", required=True)
+    split = subparsers.add_parser("split-logs", help="Split whole logs without building pools")
+    split.add_argument("--trajectories", required=True)
+    split.add_argument("--provenance", required=True)
+    split.add_argument("--output-dir", default="splits")
+    split.add_argument("--plot-dir", default="outputs/split")
+    split.add_argument("--seed", type=int, default=7)
+    split.add_argument("--baseline-dir", default="outputs/neutral")
     return parser
 
 
@@ -57,6 +67,13 @@ def main() -> None:
             all_scenario_types=args.all_scenario_types,
             shuffle=args.shuffle,
         )
+    elif args.command == "recover-provenance":
+        from .splits import recover_provenance
+        provenance = recover_provenance(args.trajectories, args.database_root)
+        result = {"recovered_rows": len(provenance["rows"]), "method": provenance["recovery_method"]}
+    elif args.command == "split-logs":
+        from .splits import run_split
+        result = run_split(args.trajectories, args.provenance, args.output_dir, args.plot_dir, args.seed, args.baseline_dir)
     elif args.command == "neutral-check":
         from .neutral import run_neutral_check
         result = run_neutral_check(args.trajectories, args.checkpoint, args.output_dir, args.tokens, args.dt, args.damping, args.batch_size)

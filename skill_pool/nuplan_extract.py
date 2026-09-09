@@ -81,6 +81,18 @@ def _local_future(scenario, samples: int, horizon_seconds: float) -> np.ndarray:
     return trajectory
 
 
+def _successful_row(scenario, samples, horizon_seconds, source_index):
+    """Resolve every field before appending anything, so failed rows cannot shift arrays."""
+    trajectory = _local_future(scenario, samples, horizon_seconds)
+    row = dict(source_index=source_index, scenario_token=str(scenario.token),
+               log_name=scenario.log_name, scenario_type=scenario.scenario_type,
+               database_source=str(scenario._log_file_load_path))
+    if any(not isinstance(row[key], str) or not row[key].strip() for key in
+           ['scenario_token', 'log_name', 'scenario_type', 'database_source']):
+        raise ValueError('Missing scenario provenance')
+    return trajectory, row
+
+
 def extract_nuplan_trajectories(
     data_root: str | Path,
     map_root: str | Path,
@@ -140,11 +152,14 @@ def extract_nuplan_trajectories(
 
     trajectories: list[np.ndarray] = []
     tokens: list[str] = []
+    provenance_rows: list[dict] = []
     failures: list[dict[str, str]] = []
     for scenario in scenarios:
         try:
-            trajectories.append(_local_future(scenario, samples, horizon_seconds))
-            tokens.append(str(scenario.token))
+            trajectory, row = _successful_row(scenario, samples, horizon_seconds, len(trajectories))
+            trajectories.append(trajectory)
+            tokens.append(row["scenario_token"])
+            provenance_rows.append(row)
         except Exception as error:  # retain an audit trail instead of aborting a long extraction
             failures.append({"token": str(scenario.token), "error": repr(error), "traceback": traceback.format_exc()})
     if not trajectories:
@@ -154,7 +169,18 @@ def extract_nuplan_trajectories(
     output.parent.mkdir(parents=True, exist_ok=True)
     np.save(output, np.stack(trajectories).astype(np.float32))
     np.save(output.with_name(f"{output.stem}_tokens.npy"), np.asarray(tokens))
+    from .splits import sha256, write_json
+    provenance_path = output.with_name(f"{output.stem}_provenance.json")
+    write_json(provenance_path, {
+        "schema_version": 1, "trajectory_sha256": sha256(output),
+        "tokens_sha256": sha256(output.with_name(f"{output.stem}_tokens.npy")),
+        "recovery_method": "Captured synchronously from successfully extracted scenario",
+        "rows": provenance_rows,
+    })
     metadata = {
+        "row_provenance_file": provenance_path.name,
+        "row_provenance_sha256": sha256(provenance_path),
+        "scenario_types": None if all_scenario_types else list(DEFAULT_SCENARIO_TYPES),
         "data_root": str(data_root),
         "map_root": str(map_root),
         "map_version": map_version,

@@ -1,0 +1,35 @@
+{
+  "data_root": "/home/jennycui/下载/yanjiusheng/nuplan/dataset/nuplan-v1.1_mini/data/cache/mini",
+  "map_root": "/home/jennycui/下载/yanjiusheng/nuplan/dataset/maps1/nuplan-maps-v1.0/maps",
+  "map_version": "nuplan-maps-v1.0",
+  "trajectory_count": 57992,
+  "trajectory_shape": [
+    30,
+    2
+  ],
+  "horizon_seconds": 3.0,
+  "coordinate_convention": "+Y forward, X lateral, ego rear-axle origin",
+  "failure_count": 0,
+  "scenario_count": 57992,
+  "scenarios_per_type": null,
+  "all_scenario_types": false,
+  "failures": [],
+  "row_provenance_file": "ego_trajs_provenance.json",
+  "row_provenance_sha256": "2221727d007a748fa33b4e961b7e7e06155b4f088e57eee04d19300a1622b766",
+  "scenario_types": [
+    "starting_left_turn",
+    "starting_right_turn",
+    "starting_straight_traffic_light_intersection_traversal",
+    "stopping_with_lead",
+    "high_lateral_acceleration",
+    "high_magnitude_speed",
+    "low_magnitude_speed",
+    "traversing_pickup_dropoff",
+    "waiting_for_pedestrian_to_cross",
+    "behind_long_vehicle",
+    "stationary_in_traffic",
+    "near_multiple_vehicles",
+    "changing_lane",
+    "following_lane_with_lead"
+  ]
+}

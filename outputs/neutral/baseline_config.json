@@ -1,0 +1,11 @@
+{
+  "neutral_source_index": 8052,
+  "neutral_source_token": "23383639f1415edc",
+  "frozen": true,
+  "files": {
+    "neutral_source_index.npy": "3d9b20cec22f2604e856bb2e6dd2b453e48e16153df72b87cf4c79ddaecf4eaa",
+    "z0.npy": "5759d9a42508f46116aaf5337357dbff0a220fe351f9617dce919cf3ec6d5a2a",
+    "neutral_target.npy": "27b55361783fe9ee1bcee4224f6926b598ad233490eafa950629aeec30acece3",
+    "G0.npy": "d039ed7ef828698ca974e60424f67b3de727b7afe639cc2e786d8a442e9df294"
+  }
+}

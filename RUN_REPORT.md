@@ -193,3 +193,65 @@ OMP_NUM_THREADS=1 MPLCONFIGDIR=/tmp/neutral-mpl python -m pytest -q
   "weights/trajectory_vae_8d_best.pth": "9918138beece445613918bc2c2e9528df3ef8837844347a47e8f15dff96300a9"
 }
 ```
+
+
+## 2026-09-09 按 log 划分 construction / held-out
+
+本阶段只补齐逐条来源、划分数据、生成分布图和运行测试。无需重新提取：原文件缺少 log/type/database 字段，但 57,992 个唯一 token 全部可可靠回查，未缺失、未发生跨库歧义。扫描 64 个 DB，其中 52 个贡献现有轨迹。只读关联 lidar_pc → lidar → log，scenario_type 先过滤原 14 类型再取 MAX，与本机 devkit 生成 scenario 的 SQL 一致。额外调用本机官方 get_scenarios_from_db（原类型过滤、remove_invalid_goals 对应参数）独立核验了 57,992 行，52 个来源数据库，类型不一致数为 0。没有重写 trajectory 或 token 数组。
+
+补录保存在 data/ego_trajs_provenance.json，原 metadata 新增其路径、SHA256 和提取类型列表。每行同时包含 source_index、scenario_token、log_name、scenario_type、database_source；长度均为 57,992，行号/token 和输入文件哈希全部通过。提取模块已修复为先取得完整成功记录再追加，失败不造成索引偏移。
+
+正式命令：
+```bash
+python -m skill_pool.cli recover-provenance --trajectories data/ego_trajs.npy --database-root ../nuplan/dataset/nuplan-v1.1_mini/data/cache/mini
+OMP_NUM_THREADS=1 MPLCONFIGDIR=/tmp/neutral-mpl python -m skill_pool.cli split-logs --trajectories data/ego_trajs.npy --provenance data/ego_trajs_provenance.json --seed 7
+OMP_NUM_THREADS=1 MPLCONFIGDIR=/tmp/neutral-mpl python -m pytest -q
+```
+
+划分先排序唯一 log，用 numpy default_rng(7) 排列，42/10 个 log；随后进行确定性的整 log 最优改进交换（最多 200 次，无改善即停）。目标为各类两组占比差平方和 + construction 轨迹占比偏离 0.8 的平方 + 缺失主要类型数。不改变 log 数、不拆轨迹，不使用模型指标，不以中性样本位置约束划分。初始纯随机划分总变差距离为 0.22948；最终为 0.02134。优化分布所用的是标签元信息，不是 held-out 模型效果。
+
+| 集合 | 轨迹数 | log 数 | 轨迹比例 | log 比例 |
+|---|---:|---:|---:|---:|
+| construction | 46514 | 42 | 80.2076% | 80.7692% |
+| heldout | 11478 | 10 | 19.7924% | 19.2308% |
+
+总计 57,992 条有效轨迹、52 个 log；无效轨迹 0。log 交集、索引交集、跨组 token 交集、重复 token 均为 0；索引范围合法、并集完整覆盖全部有效行。
+
+| 场景类型 | construction | held-out | construction 占比 | held-out 占比 |
+|---|---:|---:|---:|---:|
+| behind_long_vehicle | 662 | 1 | 1.4232% | 0.0087% |
+| changing_lane | 3 | 2 | 0.0064% | 0.0174% |
+| following_lane_with_lead | 26 | 0 | 0.0559% | 0.0000% |
+| high_lateral_acceleration | 117 | 43 | 0.2515% | 0.3746% |
+| high_magnitude_speed | 16071 | 3953 | 34.5509% | 34.4398% |
+| low_magnitude_speed | 1668 | 364 | 3.5860% | 3.1713% |
+| near_multiple_vehicles | 658 | 177 | 1.4146% | 1.5421% |
+| starting_left_turn | 211 | 57 | 0.4536% | 0.4966% |
+| starting_right_turn | 100 | 30 | 0.2150% | 0.2614% |
+| starting_straight_traffic_light_intersection_traversal | 136 | 37 | 0.2924% | 0.3224% |
+| stationary_in_traffic | 16114 | 4076 | 34.6433% | 35.5114% |
+| stopping_with_lead | 64 | 0 | 0.1376% | 0.0000% |
+| traversing_pickup_dropoff | 10620 | 2692 | 22.8318% | 23.4536% |
+| waiting_for_pedestrian_to_cross | 64 | 46 | 0.1376% | 0.4008% |
+
+分布结论：主要场景（全体占比 ≥1%）中，除 behind_long_vehicle 外均通过绝对占比差 ≤10 个百分点且 held-out/construction 占比比值在 [0.5,2] 的检查。其他主要类型的最大占比差为 0.8681 个百分点。
+
+**未通过的分布限制：behind_long_vehicle 为 662/1 条。其 663 条中 653 条（98.49%）集中于同一个 log，另两个 log 仅有 9 和 1 条。任何整 log 的约 80/20 划分，都只能把至多 10 条或至少 653 条分给 held-out，不可能接近理想约 133 条。** 不拆 log、不掩盖失败、不降低阈值；JSON 的 scenario_distribution_check.passed=false，nonconcentrated_major_types_passed=true。新增测试断言该失衡及其单 log 原因正确报告，不能把测试通过解读成所有主要类型分布都通过。少量稀有类型也可能在一组缺失，完整数量见上表。
+
+最大 log 为 2021.06.14.19.22.11_veh-38_01480_01860，3,457 条，占总量 5.96%，占 construction 7.43%；held-out 最大 log 为 2,855 条，约占 held-out 24.87%。无单 log 主导总体，但 held-out 内各 log 权重并不相等。代理已打开并目视检查两张图，图表与计数一致。
+
+产物：
+- splits/construction_indices.npy、heldout_indices.npy（原始数组行号）
+- splits/construction_logs.txt、heldout_logs.txt
+- [split_report.json](splits/split_report.json)
+- [scenario_distribution.png](outputs/split/scenario_distribution.png)
+- [log_trajectory_counts.png](outputs/split/log_trajectory_counts.png)
+
+固定中性：8052 所在 log 进入 construction；neutral_source_index.npy、z0.npy、neutral_target.npy、G0.npy 未修改，SHA256 记录于 outputs/neutral/baseline_config.json 并在运行及测试中校验。baseline 选点和参考速度此前使用了完整数据，所以本次 held-out 不应被描述为从未参与中性 baseline 配置。未进行新的 Pool 构建（全部测试中原有合成 Pool 测试只写 pytest 临时目录）、未实现严格 geodesic Log、未接入 PufferDrive。
+
+全部测试：
+```text
+......................                                                   [100%]
+22 passed in 6.87s
+```
+测试覆盖整 log 隔离、索引隔离/合法/全覆盖、相同 seed 可复现、输入行重排下 log 分组稳定、长度及行 token 对齐、多标签恢复、歧义和缺失拒绝、提取失败对齐保护、分布异常检测及上述真实集中限制、真实划分和 PNG 文件、固定 baseline 哈希。
