@@ -1,0 +1,51 @@
+{
+  "base_commit": "75e6e5e",
+  "selection_split": "construction",
+  "baseline_solver": {
+    "segments": 8,
+    "damping": 0.0001,
+    "max_iterations": 100,
+    "gradient_tolerance": 0.0001,
+    "quadrature_points": 2,
+    "seed": 7
+  },
+  "minimum_convergence_rate": 0.95,
+  "max_projected_1000_seconds": 3600,
+  "maximum_stage_rss_range_mb": 512,
+  "device": "cpu",
+  "cuda_available": false,
+  "local_baseline_sha256": {
+    "heldout_indices.npy": "e6b684086752c9b1c74083e1e9ce16a46b22939e9ccd35eade0945dff7a461a1",
+    "skill_pool_64.pt": "cbd5a8018c9514aa450e4823aad061bb53fe55c83ec2ac360da2b208e9345744",
+    "report.json": "198bbd00bb07fcbf998dba3a9c8e22693e7d84e66ca9d56280ee3b4e67745e00",
+    "skill_pool_32.png": "2086bbb5d534bbf02b756d9dfa13d6fdae38e43956d22b7e33be11d5d1c48fca",
+    "skill_usage_32.png": "6d835d488d546180e01edf41a239203c8fefd968f22e8f097d2e447ab6440d3b",
+    "skill_pool_64.png": "d92b9cc88727861fe534d1f4a220b6c303ec08d61b2993372354782732598515",
+    "nearest_skill_examples_32.png": "b7565d0fa9ffa6e5091c1e957a2c544d876517916559bc88dbdac475795408e8",
+    "duplicate_diagnostics.json": "7a66000352c2a16039390d14365002cef43eb62c2b7ed9a45f2455caac43bd10",
+    "skill_usage_64.png": "9db312611688d91b3aa2098576dd4436c98a04fa38d012c787b2d40b7f5b9aee",
+    "skill_pool_32.pt": "d4c78a56c055a856309c4f5d53b4ae947445963dfff2c0e2fc94a461e20ac3aa",
+    "coverage_comparison.png": "6ccbd6549281c9e14fab1e800b42c0afcbf37b029723a1ff63ff89b1b353793d",
+    "coverage_construction_64.npz": "c3f95a41993bc9e4cb2c2f26a5c2c8d1c1226e873509b7d65f2bd99d16b2442a",
+    "coverage_heldout_32.npz": "4e84c9f523b0572a8b11e04226020e5be6ac04ab21edae9de0f196e434f6ea0f",
+    "coverage_construction_32.npz": "64fe91163e726f878fda40408cc79e9362cc059fe56f43cc2a3683c314e9fd4f",
+    "duplicate_skill_pairs.png": "872f947fa6d8fe03016d1a44af4251650a7e87060b37322e2d0a03e3c6a6e9be",
+    "heldout_latents.npy": "9463d1dbcaf0f20536a8d558c642f6f2398ebff62e2e268eacd38e4acb9a63a2",
+    "skill_pool_32.npz": "2a01e5917c59b0b722fca7d6002bf06c0473d178a8909cd108e915a184cb8f58",
+    "construction_indices.npy": "501040f10d20da42d9535d0b254ad31c66946a7a1b2f14a49d9a03fcb313226a",
+    "nearest_skill_examples_64.png": "e252cf7b4c3ceda6e9771dd2f603511c1333e3e631fc3b63662f8f857887ce96",
+    "all_latent_source_indices.npy": "f2eed9a07be333325e63ce220b8650b12be2bd8405fec273a24ebcadd8477e5d",
+    "coverage_heldout_64.npz": "5991b28760d192dd7cb4fcb32c06686ff94d07e4b59b45e9fb082937034c2bf1",
+    "all_latents.npy": "f5aab09df9799164f24d1ac6e9db4ccde5306116e713f535a315e47777652d39",
+    "construction_latents.npy": "ebef3184f8bcd39303924caff877da44b51a77e4f47dea61c23b691fb5dd2703",
+    "skill_pool_64.npz": "63561502c719c6a6a8c51c4783a1002b586d6c5fe879c6176ee11936f873784a"
+  },
+  "checkpoint_sha256": "9918138beece445613918bc2c2e9528df3ef8837844347a47e8f15dff96300a9",
+  "candidate_indices_sha256": "ca9ee8fd784198f47d551371aa02fe08778434ef65e92a37a5eb540dcbfe62fb",
+  "interpretation": "Numerical variational discrete Log estimate L*(p1-p0); not exact continuous Log. Frozen ReLU decoder induces nonsmooth metric. No heldout information used.",
+  "convergence": "Infinity norm of gradient of E/max(E_initial,1e-12) w.r.t. internal latent nodes <=1e-4. Energy decrease or optimizer stall alone is not convergence.",
+  "references": [
+    "https://arxiv.org/abs/1210.2097"
+  ],
+  "sensitivity_execution_context": "Three independent configuration processes launched concurrently, one OMP CPU thread each; baseline stages were serial. Sensitivity timings may include contention."
+}

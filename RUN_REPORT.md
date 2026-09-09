@@ -583,3 +583,205 @@ behind_long_vehicle 的 held-out 只有 1 条，following_lane_with_lead 和 sto
 新增验收覆盖：中性统计忽略 held-out（改变 held-out 速度后结果不变）；自动/目视失败阻止建库；非法 split 拒绝；选择器只收到 construction；同 seed 改变 held-out 轨迹 1000 倍后方向、强度、来源及 latent 完全不变；K32/64 形状、.pt/.npz 一致性；原始 source 回指、完整/分组编码映射；分组 coverage 独立计算和 minFDE/FDE-at-minADE 区分；空场景保留 null；合成重复轨迹识别；全部正式产物与原中性归档哈希。
 
 输入 checkpoint SHA256：9918138beece445613918bc2c2e9528df3ef8837844347a47e8f15dff96300a9。数据 SHA256：183ea120cb1dc53367ed19f55d6cd80269b08d849010ab27b639677b28c9427f。与此前 baseline 输入一致。
+
+
+## 2026-09-09 Geodesic Log 小规模可行性实验（基于 75e6e5e）
+
+结论：当前冻结 ReLU decoder 上，本次离散可变度量能量求解未通过严格数值收敛验收，不能以此替换正式 Pool。1/10/100 顺序冒烟后停止扩大，不对1,000条、更不对46,514条全 construction 求 Log。原 construction-only K32/K64 完整保留为 outputs/local_baseline，outputs/v1 本身也未修改；逐文件哈希验证通过，VAE checkpoint 未修改或重训，未接入 PufferDrive。
+
+### 候选与索引
+
+仅使用 construction_indices 对应的46,514条轨迹。基于前向位移、平均速度、速度标准差/首末5步均速差、最终/最大横移、航向范围、最大曲率进行描述量分位数分箱。行为层和尾部层轮流取样，再在层内轮流取分位数单元，seed=7。尾部定义为任一描述量落在construction的1%/99%尾端；近静止段（速度≤0.2 m/s）不参与航向/曲率统计。正/负X名称显式保留；按照原提取旋转，负X为左、正X为右。
+
+共1,000条唯一候选，全部属于construction，无held-out索引。每行 source_index 指回原始ego_trajs.npy，candidate_latents来自已经保存的construction编码，不重新拟合VAE。描述量、分位数、各行为/尾部层数量保存在candidate_descriptors.json和candidate_summary.json。
+
+| 行为层 | construction可用 | 入选 |
+|---|---:|---:|
+| accelerating | 3619 | 100 |
+| decelerating | 2427 | 100 |
+| lateral_negative_X | 549 | 100 |
+| lateral_positive_X | 433 | 100 |
+| other | 3535 | 100 |
+| stationary | 19274 | 100 |
+| straight_fast | 6389 | 100 |
+| straight_medium | 5497 | 50 |
+| straight_slow | 1101 | 50 |
+| turn_negative_X | 2690 | 100 |
+| turn_positive_X | 1000 | 100 |
+
+候选尾部标记 450/1000；construction共形成 1831 个可用描述量分箱单元，本次在其中分层取样，属于有意分层过采样，不是construction行为频率的无偏样本。
+
+### 数学定义与实现边界
+
+latent路径时间为[0,1]，L段、L+1个节点，首尾固定，只优化L−1个内部节点；初始为latent直线插值。每段2点Gauss-Legendre积分：
+
+E_L = L/2 Σ_j Σ_q w_q Δ_jᵀ G(p_j+u_q Δ_j) Δ_j，G(z)=J_D(z)ᵀJ_D(z)/60+λI。
+
+torch.func.jacfwd+vmap计算完整[60,8] Jacobian，保留Jacobian对路径latent的依赖（不是冻结路径上的G）；能量梯度含度量变化项。模型参数冻结，double仅改变运算精度，加载前后checkpoint哈希相同，求解前后内存中的权重逐位相同。LBFGS strong-Wolfe线搜索。默认L=8、λ=1e-4、最大100次外层迭代，梯度无穷范数 ||∇(E/max(E_initial,1e-12))||∞≤1e-4才算收敛。能量下降、停滞或优化器返回均不自动算收敛。
+
+返回L*(p1−z0)，即优化离散路径的初速度估计。理论背景：[Variational time discretization of geodesic calculus](https://arxiv.org/abs/1210.2097)。这里不声称精确连续Log、全局最短路径或唯一性；原网络ReLU使G仅分片光滑，激活边界可有跳变，不能直接套用光滑流形的离散收敛结论。最后以4点Gauss能量再次检查积分分辨率。
+
+### 顺序冒烟与停止门槛
+
+预先记录的扩大条件：100条收敛率≥95%，所有路径/向量有限、端点固定、能量不升、权重不变、RSS范围≤512MB，并且1000条预计≤3600秒。环境无可用CUDA，使用CPU；没有声称测得GPU显存稳定性。
+
+| 阶段 | n | 收敛数 | 收敛率 | 总秒数 | 每条均秒数 | RSS范围MB |
+|---|---:|---:|---:|---:|---:|---:|
+| stage_1 | 1 | 0 | 0.0% | 6.54 | 6.5400 | 0.000 |
+| stage_10 | 10 | 0 | 0.0% | 45.61 | 4.5606 | 1.414 |
+| stage_100 | 100 | 0 | 0.0% | 368.48 | 3.6841 | 7.480 |
+
+停止原因：100-sample convergence below 95%；1000-sample projection exceeds predeclared 3600-second budget。
+
+全部已尝试路径/向量均有限、端点固定、能量不高于初始、权重未变；不满足梯度标准的样本仍全部记录为失败，含原source index、失败原因和完整traceback。保留1/10/100各阶段独立文件；根目录solver_records.jsonl/log_vectors.npy/paths.npy对应最终100条，evaluated_indices.npy给出索引。candidate_status.jsonl覆盖全部1000条，剩余900条明确为not_attempted，未用零向量伪装为求解成功。local_vectors.npy可计算全部1000条，因为它不涉及求Log。
+
+### 固定100条配置敏感性
+
+与stage_100完全相同的source_indices；仅分别改变L=16、λ=1e-3、最大50步，其余参数不变。三个配置独立并发、每进程OMP线程1；因此变体耗时含可能的资源竞争，不作严格串行性能横比。
+
+| 配置 | L | damping | 最大步数 | 收敛数/100 | 总秒数 | 每条均秒数 | 4点/2点能量相对差P90 |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| baseline_L8 | 8 | 0.0001 | 100 | 0 | 368.48 | 3.6841 | 0.047585 |
+| sensitivity_L16 | 16 | 0.0001 | 100 | 0 | 388.07 | 3.8801 | 0.030549 |
+| sensitivity_damping_1e3 | 8 | 0.001 | 100 | 0 | 334.35 | 3.3429 | 0.047567 |
+| sensitivity_iterations50 | 8 | 0.0001 | 50 | 0 | 172.65 | 1.7259 | 0.047585 |
+
+变体与默认L8暂定向量在固定G0下的差异（均包括未收敛结果）：
+
+| 配置 | 夹角P50/P90（°） | 强度比例P50/P90 | 相对误差P50/P90 | 共同收敛数 |
+|---|---|---|---|---:|
+| sensitivity_L16 | 0.0518/4.0575 | 1.0000/1.0865 | 0.0102/0.2300 | 0 |
+| sensitivity_damping_1e3 | 0.0000/0.0000 | 1.0000/1.0000 | 0.0000/0.0000 | 0 |
+| sensitivity_iterations50 | 0.0000/0.0000 | 1.0000/1.0000 | 0.0000/0.0000 | 0 |
+
+没有通过收敛的解，就不能据暂定向量接近或不同推断严格Log与局部近似是否存在实质差异。提高L或改变damping/预算的结果只能作为本次求解器稳定性诊断。主要瓶颈是非光滑度量下的线搜索/梯度残差以及高阶自动微分成本，而非GPU显存溢出；能量积分分辨率差异进一步限制可信度。这不是对所有可能geodesic算法的否定。
+
+### 与局部近似对比
+
+v_local=z_i−z0，v_geo为返回的离散初速度；所有比较固定使用construction的G0。夹角为acos(v_localᵀG0v_geo/(||v_local||G0 ||v_geo||G0))，强度比=||v_geo||G0/||v_local||G0，相对误差=||v_geo−v_local||G0/||v_local||G0。零范数不定义项记录null。local_vs_geodesic.json逐行和按行为层提供mean/P50/P90/max，并分开all_attempted与converged_only。
+
+全部100条暂定向量概览：
+```json
+{
+  "angle_deg": {
+    "count": 100,
+    "mean": 2.1877014957464302,
+    "p50": 0.025831414898064613,
+    "p90": 4.050285260503882,
+    "max": 92.55038605348913
+  },
+  "strength_ratio": {
+    "count": 100,
+    "mean": 1.0818153949608225,
+    "p50": 1.0,
+    "p90": 1.203721383661044,
+    "max": 2.018394157969313
+  },
+  "relative_error": {
+    "count": 100,
+    "mean": 0.10425114974843132,
+    "p50": 0.00968171736993757,
+    "p90": 0.21983584887213242,
+    "max": 1.3990378790970053
+  }
+}
+```
+已收敛子集：
+```json
+{
+  "angle_deg": {
+    "count": 0,
+    "mean": null,
+    "p50": null,
+    "p90": null,
+    "max": null
+  },
+  "strength_ratio": {
+    "count": 0,
+    "mean": null,
+    "p50": null,
+    "p90": null,
+    "max": null
+  },
+  "relative_error": {
+    "count": 0,
+    "mean": null,
+    "p50": null,
+    "p90": null,
+    "max": null
+  }
+}
+```
+
+差异最大的20条（相对误差排序，未收敛项不当作有效Log）：
+
+| source index | 行为 | 角度° | 强度比 | 相对误差 | 收敛 |
+|---:|---|---:|---:|---:|---|
+| 1390 | turn_negative_X | 92.5504 | 0.9349 | 1.3990 | False |
+| 4801 | turn_positive_X | 34.1127 | 2.0184 | 1.3159 | False |
+| 12592 | turn_negative_X | 27.7683 | 1.6290 | 0.8779 | False |
+| 28133 | lateral_positive_X | 6.6213 | 1.7192 | 0.7350 | False |
+| 32532 | turn_negative_X | 11.2179 | 1.6313 | 0.6789 | False |
+| 48527 | straight_slow | 0.4455 | 1.4007 | 0.4008 | False |
+| 56543 | turn_positive_X | 3.9964 | 1.3899 | 0.3985 | False |
+| 1539 | turn_positive_X | 5.4492 | 1.2568 | 0.2780 | False |
+| 16746 | lateral_positive_X | 4.3940 | 1.2282 | 0.2435 | False |
+| 49172 | decelerating | 1.1320 | 1.2271 | 0.2282 | False |
+| 1044 | decelerating | 0.4916 | 1.2187 | 0.2189 | False |
+| 40786 | decelerating | 0.8164 | 1.2021 | 0.2027 | False |
+| 29325 | turn_negative_X | 4.8554 | 1.1511 | 0.1763 | False |
+| 23532 | turn_negative_X | 6.3166 | 1.1287 | 0.1740 | False |
+| 28628 | turn_negative_X | 4.3223 | 1.1420 | 0.1633 | False |
+| 20258 | turn_positive_X | 4.0201 | 1.1425 | 0.1610 | False |
+| 668 | lateral_negative_X | 0.2298 | 1.1571 | 0.1571 | False |
+| 20803 | lateral_negative_X | 0.2120 | 1.1552 | 0.1553 | False |
+| 16541 | other | 0.5495 | 1.1509 | 0.1513 | False |
+| 19530 | turn_negative_X | 1.9519 | 1.1454 | 0.1499 | False |
+
+### 成本外推与产物
+
+以下以**串行stage_100**每条平均耗时线性估计，包括失败样本；假设相同硬件、配置与分层候选混合，不是大规模实测。
+
+| 数量 | 预计秒数 | 预计小时 |
+|---:|---:|---:|
+| 1000 | 3684.1 | 1.023 |
+| 10000 | 36841.1 | 10.234 |
+| 20000 | 73682.3 | 20.467 |
+
+核心产物均在log_experiment/：convergence_summary.json、candidate_indices.npy、candidate_descriptors.json、candidate_summary.json、candidate_status.jsonl、log_vectors.npy、local_vectors.npy、evaluated_indices.npy、paths.npy、solver_records.jsonl、local_vs_geodesic.json、sensitivity_comparison.json。
+
+图像：[energy_curves.png](log_experiment/energy_curves.png)、[angle_error_hist.png](log_experiment/angle_error_hist.png)、[strength_ratio_hist.png](log_experiment/strength_ratio_hist.png)、[largest_difference_examples.png](log_experiment/largest_difference_examples.png)、[runtime_scaling.png](log_experiment/runtime_scaling.png)。图例明确未收敛结果为provisional，largest difference图展示原始轨迹及D(target)，不是声称优化路径是可执行驾驶轨迹。
+
+### 命令与测试
+
+```bash
+OMP_NUM_THREADS=1 MPLCONFIGDIR=/tmp/neutral-mpl python -m skill_pool.log_experiment prepare
+OMP_NUM_THREADS=1 MPLCONFIGDIR=/tmp/neutral-mpl python -m skill_pool.log_experiment stage --count 1
+OMP_NUM_THREADS=1 MPLCONFIGDIR=/tmp/neutral-mpl python -m skill_pool.log_experiment stage --count 10
+OMP_NUM_THREADS=1 MPLCONFIGDIR=/tmp/neutral-mpl python -m skill_pool.log_experiment stage --count 100
+# 以下三条对同一100条并发运行：
+OMP_NUM_THREADS=1 MPLCONFIGDIR=/tmp/neutral-mpl python -m skill_pool.log_experiment sensitivity --variant L16
+OMP_NUM_THREADS=1 MPLCONFIGDIR=/tmp/neutral-mpl python -m skill_pool.log_experiment sensitivity --variant damping
+OMP_NUM_THREADS=1 MPLCONFIGDIR=/tmp/neutral-mpl python -m skill_pool.log_experiment sensitivity --variant iterations
+OMP_NUM_THREADS=1 MPLCONFIGDIR=/tmp/neutral-mpl python -m skill_pool.log_diagnostics
+OMP_NUM_THREADS=1 MPLCONFIGDIR=/tmp/neutral-mpl python -m pytest -q
+```
+
+重复实验须另用--root新目录，prepare和已完成stage拒绝覆盖既有结果。本次没有执行stage_1000，全部construction求Log和Pool替换均未进行。
+
+全部测试：
+```text
+.........................................                                [100%]
+=============================== warnings summary ===============================
+tests/test_geodesic.py: 18 warnings
+  /home/jennycui/anaconda3/envs/skillformer/lib/python3.10/site-packages/torch/jit/_script.py:1488: DeprecationWarning: `torch.jit.script` is deprecated. Please switch to `torch.compile` or `torch.export`.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+41 passed, 18 warnings in 15.94s
+```
+覆盖零Log、常度量解析能量/直线Log、非恒定度量梯度对有限差分、路径固定/能量不升/有限值、模型权重不变、同seed复现、异常与不收敛完整记录、原始source index、construction候选、held-out内容扰动不影响候选/Log、G0比较公式和零分母、1000扩大门槛、实际产物/固定100子集以及local_baseline哈希。PyTorch的torch.jit.script弃用警告来自torch.func路径，不是数值错误，完整警告计数如测试输出。
+
+补充数值诊断：默认100条中50条能量下降超过相对1e-8，平均下降3.3432%，中位下降0.1333%；最终归一化梯度残差P50=0.2105、P90=1.2060，远高于1e-4。4点/2点能量相对差P90=4.7585%、最大6.7392%，因此即使只看能量也尚未得到分辨率稳定的保证。
+
+代理已打开并目视检查五张最终诊断图。最大差异样本1390的暂定向量夹角92.55°、相对误差1.3990，但求解失败；图片和报告均明确保留失败标记。中性、现有V1 Pool和数据split未变。全部测试中的旧建库测试仅使用pytest临时合成数据，不是重建正式Pool。

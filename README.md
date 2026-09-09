@@ -187,3 +187,45 @@ FDE-at-minADE、使用技能数、逐技能分配次数及逐类型指标。pair
 
 此处 held-out 未参与中性估计和 Pool 拟合；冻结 checkpoint 原训练数据与这些 log 是否
 独立尚未核实，因此这是 Pool 构建阶段的 held-out 评估。未修改或重训 VAE。
+
+## 小规模路径能量 / geodesic Log 可行性实验
+
+独立实验入口 `python -m skill_pool.log_experiment`，基于 V1 提交 75e6e5e。
+`outputs/local_baseline/` 完整保留 V1 文件，`outputs/v1/` 本身也不改动。
+仅以 construction 的描述量分层抽取 1,000 条，`log_experiment/candidate_indices.npy`
+始终指向原始行；候选前缀通过行为/尾部层轮流取样，适合依次进行 1/10/100 条冒烟。
+行为描述包括位移、速度及变化、横向位移、航向范围和曲率；近静止段速度≤0.2 m/s
+不用于航向/曲率统计。负 X / 正 X 由当前提取旋转分别对应左 / 右。
+
+```bash
+OMP_NUM_THREADS=1 python -m skill_pool.log_experiment prepare
+OMP_NUM_THREADS=1 python -m skill_pool.log_experiment stage --count 1
+OMP_NUM_THREADS=1 python -m skill_pool.log_experiment stage --count 10
+OMP_NUM_THREADS=1 python -m skill_pool.log_experiment stage --count 100
+# 只有 100 条收敛率≥95%、数值检查通过、预计 1000 条≤3600 秒才能扩大。
+# python -m skill_pool.log_experiment stage --count 1000
+OMP_NUM_THREADS=1 python -m skill_pool.log_experiment sensitivity
+OMP_NUM_THREADS=1 MPLCONFIGDIR=/tmp/neutral-mpl python -m skill_pool.log_diagnostics
+```
+
+采用固定首尾的分段线性 latent 路径，在每段 2 个 Gauss 点计算可微完整 decoder Jacobian，
+按 `G(z)=J(z)^T J(z)/60 + lambda I` 积分 `E=1/2 ∫ v^T G v dt`。仅内部 latent 为优化参数，
+冻结 VAE 以 float64 运算，不改变 checkpoint。LBFGS strong-Wolfe 线搜索，默认 L=8、
+lambda=1e-4、最多100步。返回 `L*(path[1]-z0)`，即离散路径初速度估计。
+收敛要求归一化能量梯度无穷范数≤1e-4；能量下降或停滞本身不代表收敛。
+
+这实现了沿路径可变度量的数值 geodesic 优化，不能把它当作精确连续 Log 的证明。
+原 decoder 的 ReLU 使度量仅分片光滑，激活边界可能令优化和积分不稳定；额外以4点积分
+审计末态能量，并在固定100条上比较 L、damping 和迭代预算。
+理论背景：[Rumpf 与 Wirth 的变分离散 geodesic calculus](https://arxiv.org/abs/1210.2097)。
+该论文的离散收敛理论不能直接证明本项目非光滑网络的结果。
+
+每次尝试均保留原 source index、能量曲线、梯度残差、路径、耗时、收敛状态；失败包含
+完整 traceback。根目录 log_vectors.npy 对齐 evaluated_indices.npy，未尝试的候选不填成
+有效零向量。统计分别报告全部暂定结果和已收敛子集；零范数角度/比例不定义，JSON为null。
+实验不会调用 Pool 重建或读取 held-out 内容决定候选与 Log。
+
+实验需要 PyTorch ≥2.0 的 `torch.func`，本次实际为 2.11.0、CPU、每进程1线程。
+敏感性实际命令分别使用 `sensitivity --variant L16`、`--variant damping`、
+`--variant iterations`，三个配置独立并发执行；因此变体的耗时可能含竞争，正式规模估算
+以串行100条 baseline 实测为依据，不把并发变体时间当作纯串行性能对比。

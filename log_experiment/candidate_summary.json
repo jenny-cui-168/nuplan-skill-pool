@@ -1,0 +1,141 @@
+{
+  "seed": 7,
+  "construction_count": 46514,
+  "selected_count": 1000,
+  "descriptor_quantiles": {
+    "forward_displacement_m": [
+      -0.01620582738891244,
+      5.3666738040192286e-06,
+      7.821081876754761,
+      29.460424423217773,
+      41.80561779022218
+    ],
+    "mean_speed_mps": [
+      0.00016879526054026773,
+      0.0003966993178233085,
+      2.644438289878959,
+      9.821624302767901,
+      13.935464330531934
+    ],
+    "speed_std_mps": [
+      8.412623983681787e-05,
+      0.0002162956181327939,
+      0.10595808781075838,
+      0.2679624174454898,
+      1.1797931082129565
+    ],
+    "speed_change_mps": [
+      -2.533230116230565,
+      -0.09665953383983616,
+      -3.3190532813693067e-06,
+      0.23818311527138314,
+      3.2212222185476995
+    ],
+    "final_lateral_m": [
+      -4.690503253936767,
+      -0.07749316655099392,
+      -1.2827223599742865e-05,
+      0.004399903118610382,
+      4.6137117815017845
+    ],
+    "max_lateral_m": [
+      4.880640062765451e-05,
+      0.0001305926743953023,
+      0.04012168012559414,
+      0.2429264709353447,
+      6.039094305038465
+    ],
+    "heading_change_deg": [
+      0.0,
+      0.0,
+      0.6270350499139047,
+      1.8750464172048606,
+      44.18747848280452
+    ],
+    "max_curvature_inv_m": [
+      0.0,
+      0.0,
+      0.0029593796427248536,
+      0.009260151529480478,
+      2.7412081399267842
+    ]
+  },
+  "straight_speed_tertiles_mps": [
+    5.589171857993903,
+    10.367150656801009
+  ],
+  "available_behavior_counts": {
+    "straight_medium": 5497,
+    "stationary": 19274,
+    "turn_negative_X": 2690,
+    "straight_fast": 6389,
+    "straight_slow": 1101,
+    "other": 3535,
+    "lateral_negative_X": 549,
+    "accelerating": 3619,
+    "turn_positive_X": 1000,
+    "decelerating": 2427,
+    "lateral_positive_X": 433
+  },
+  "selected_behavior_counts": {
+    "accelerating": 100,
+    "decelerating": 100,
+    "lateral_negative_X": 100,
+    "lateral_positive_X": 100,
+    "other": 100,
+    "stationary": 100,
+    "straight_fast": 100,
+    "straight_medium": 50,
+    "straight_slow": 50,
+    "turn_negative_X": 100,
+    "turn_positive_X": 100
+  },
+  "selected_tail_count": 450,
+  "cell_count": 1831,
+  "available_stratum_counts": {
+    "straight_medium|tail=False": 5497,
+    "stationary|tail=True": 1718,
+    "turn_negative_X|tail=True": 510,
+    "stationary|tail=False": 17556,
+    "straight_fast|tail=False": 6104,
+    "straight_slow|tail=False": 1101,
+    "other|tail=False": 3221,
+    "lateral_negative_X|tail=False": 480,
+    "accelerating|tail=False": 3167,
+    "turn_negative_X|tail=False": 2180,
+    "turn_positive_X|tail=True": 533,
+    "decelerating|tail=True": 517,
+    "lateral_positive_X|tail=False": 380,
+    "decelerating|tail=False": 1910,
+    "other|tail=True": 314,
+    "turn_positive_X|tail=False": 467,
+    "straight_fast|tail=True": 285,
+    "lateral_negative_X|tail=True": 69,
+    "accelerating|tail=True": 452,
+    "lateral_positive_X|tail=True": 53
+  },
+  "selected_stratum_counts": {
+    "accelerating|tail=False": 50,
+    "accelerating|tail=True": 50,
+    "decelerating|tail=False": 50,
+    "decelerating|tail=True": 50,
+    "lateral_negative_X|tail=False": 50,
+    "lateral_negative_X|tail=True": 50,
+    "lateral_positive_X|tail=False": 50,
+    "lateral_positive_X|tail=True": 50,
+    "other|tail=False": 50,
+    "other|tail=True": 50,
+    "stationary|tail=False": 50,
+    "stationary|tail=True": 50,
+    "straight_fast|tail=False": 50,
+    "straight_fast|tail=True": 50,
+    "straight_medium|tail=False": 50,
+    "straight_slow|tail=False": 50,
+    "turn_negative_X|tail=False": 50,
+    "turn_negative_X|tail=True": 50,
+    "turn_positive_X|tail=False": 50,
+    "turn_positive_X|tail=True": 50
+  },
+  "method": "Round-robin behavior/tail strata and descriptor quantile cells; all quantiles from construction only; no heldout input",
+  "sign_convention": "+Y forward, X lateral; positive/negative X labels used explicitly"
+}
