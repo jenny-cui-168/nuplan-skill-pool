@@ -95,3 +95,21 @@ outputs/
 
 这个仓库完成“nuPlan 轨迹 → 32/64 技能库”。PufferDrive 闭环属于下一阶段，还需要把
 `[30,2]` 参考轨迹转换成 acceleration/steering 的轨迹跟踪器。
+
+## 独立中性技能验收
+
+```bash
+OMP_NUM_THREADS=1 MPLCONFIGDIR=/tmp/neutral-mpl python -m skill_pool.cli neutral-check \
+  --trajectories data/ego_trajs.npy \
+  --checkpoint weights/trajectory_vae_8d_best.pth --output-dir outputs/neutral
+```
+
+该命令只生成中性诊断，不构建 Pool。默认读取同目录 `ego_trajs_tokens.npy`。
+future 点的时间为 0.1–3.0 秒，速度包含原点到首点的区间；航向从 +Y 计算，
+航向变化采用整个窗口的最大值减最小值。正常运动（每步前进、平均速度 2–25 m/s）
+的轨迹平均速度中位数为参考速度。原始及解码轨迹均须通过固定门限：最大绝对横移
+≤0.5 m，最大绝对航向及航向范围 ≤5°，速度标准差 ≤0.5 m/s，速度范围 ≤2 m/s。
+通过后按解码到标准轨迹 ADE 升序选择真实样本，平分时按原始行号选择，无合格项则报错停止。
+门限是本次工程验收定义，不是通用驾驶标准。参数、前十名和全部检查记录在 JSON。
+输出包含标准轨迹、原始来源行号/token/轨迹、z0、解码轨迹、G0 和两张 PNG。
+旧 `build` 路径未接入此验收，后续建库须显式复用验收结果。

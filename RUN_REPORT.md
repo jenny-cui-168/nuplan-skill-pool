@@ -79,3 +79,117 @@ logs/extract_smoke.log、extract_final.log、build_smoke.log、build_final.log �
 outputs/final/skill_pool_32.pt、skill_pool_64.pt 以及对应 .npz、.png。
 outputs/final/report.json、run_config.json、validation.json 为指标、参数和形状验证。
 scripts/reproduce_final.sh 为正式运行复现命令（会覆盖同名输出）。
+
+
+## 2026-09-09 中性技能独立验收
+
+未重新提取 nuPlan，未修改或重训 real-Skillformer-master 的 8 维 VAE，未实现严格 geodesic Log，未构建新 Pool。使用冻结 checkpoint、CPU、encoder 均值选择真实样本。
+
+正式命令（调整绘图横轴范围后重复执行一次）：
+```bash
+OMP_NUM_THREADS=1 MPLCONFIGDIR=/tmp/neutral-mpl python -m skill_pool.cli neutral-check --trajectories data/ego_trajs.npy --checkpoint weights/trajectory_vae_8d_best.pth --output-dir outputs/neutral
+OMP_NUM_THREADS=1 MPLCONFIGDIR=/tmp/neutral-mpl python -m pytest -q
+```
+
+全部测试结果：
+```text
+...............                                                          [100%]
+15 passed in 5.81s
+```
+新增测试覆盖方向、速度、转弯/横移/加减速拒绝、合格直线、非有限值、源索引不因无效行错位、G0 对称正定及 PNG/JSON 生成。
+
+诊断图：[neutral_check.png](outputs/neutral/neutral_check.png)、[neutral_candidates.png](outputs/neutral/neutral_candidates.png)。JSON：[neutral_check.json](outputs/neutral/neutral_check.json)、[metric_check.json](outputs/neutral/metric_check.json)。同目录保存 neutral_target.npy、neutral_source_index.npy、neutral_source_token.npy、neutral_source_trajectory.npy、z0.npy、neutral_decoded.npy、G0.npy。
+
+人工/目视检查记录：执行代理已通过图像查看工具打开并逐图检查最终两张 PNG（并非声称用户本人已审阅）。等比例 +Y 前向轨迹基本重合，前十名没有明显转弯或横移。D(z0) 有厘米级横向抖动及小幅逐帧速度抖动，但没有明显持续加减速；符合固定验收门限，无需替换中性点。相同比例会令厘米级差别不明显，细节由横移、航向与速度曲线及标注补充。
+
+参考速度为正常前进轨迹平均速度的中位数；完整固定门限与排序方法见 README 和 JSON。结果：
+```json
+{
+  "reference_speed_mps": 9.76328751379451,
+  "reference_speed_method": "Median of per-trajectory mean speeds, including origin-to-first-future-point; finite, every Y step > 0, mean speed in [2,25] m/s",
+  "normal_motion_count": 29680,
+  "source_candidate_count": 17054,
+  "decoded_eligible_count": 15113,
+  "neutral_source_index": 8052,
+  "neutral_source_token": "23383639f1415edc",
+  "original": {
+    "forward_displacement_m": 29.373266220092773,
+    "final_lateral_displacement_m": 0.0030084410682320595,
+    "max_lateral_displacement_m": 0.05271231010556221,
+    "mean_speed_mps": 9.791173930810487,
+    "speed_std_mps": 0.09311410573356824,
+    "speed_range_mps": 0.3613596150259326,
+    "heading_change_deg": 0.8316551848229123,
+    "max_heading_deg": 0.529194360807527,
+    "min_forward_step_m": 0.9626736640930176,
+    "target_ade_m": 0.05224359871441398
+  },
+  "decoded": {
+    "forward_displacement_m": 29.286865234375,
+    "final_lateral_displacement_m": 0.05885349214076996,
+    "max_lateral_displacement_m": 0.05885349214076996,
+    "mean_speed_mps": 9.762910499228814,
+    "speed_std_mps": 0.18713751921628471,
+    "speed_range_mps": 0.8564436355794616,
+    "heading_change_deg": 2.989624559002452,
+    "max_heading_deg": 1.9083106397534237,
+    "min_forward_step_m": 0.9346485137939453,
+    "target_ade_m": 0.02888067501354051
+  },
+  "original_decoded_ade_m": 0.04507109150290489,
+  "automatic_checks": {
+    "original": {
+      "finite": true,
+      "normal_forward": true,
+      "small_lateral": true,
+      "stable_heading": true,
+      "stable_speed": true,
+      "passed": true
+    },
+    "decoded": {
+      "finite": true,
+      "normal_forward": true,
+      "small_lateral": true,
+      "stable_heading": true,
+      "stable_speed": true,
+      "passed": true
+    },
+    "metric": true,
+    "passed": true
+  }
+}
+```
+
+度量检查（正定但条件数约 2.46 万，记录原值，不据此声称已验证全局几何）：
+```json
+{
+  "eigenvalues": [
+    0.00012335518532693613,
+    0.00020934695199641674,
+    0.00028588447154895735,
+    0.0005801378204319753,
+    0.0007521748690595711,
+    0.031897495247437326,
+    0.14460105520185307,
+    3.029106917172818
+  ],
+  "min_eigenvalue": 0.00012335518532693613,
+  "max_eigenvalue": 3.029106917172818,
+  "condition_number": 24555.97556880173,
+  "symmetric": true,
+  "positive_definite": true,
+  "contains_nan": false,
+  "contains_inf": false,
+  "passed": true,
+  "lambda": 0.0001,
+  "formula": "J_D(z0)^T J_D(z0)/60 + lambda*I"
+}
+```
+
+输入 SHA256：
+```json
+{
+  "data/ego_trajs.npy": "183ea120cb1dc53367ed19f55d6cd80269b08d849010ab27b639677b28c9427f",
+  "weights/trajectory_vae_8d_best.pth": "9918138beece445613918bc2c2e9528df3ef8837844347a47e8f15dff96300a9"
+}
+```

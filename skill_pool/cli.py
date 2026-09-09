@@ -31,6 +31,14 @@ def _build_parser() -> argparse.ArgumentParser:
     build.add_argument("--batch-size", type=int, default=1024)
     build.add_argument("--device", default="auto", choices=["auto", "cpu", "cuda", "mps"])
     build.add_argument("--seed", type=int, default=7)
+    neutral = subparsers.add_parser("neutral-check", help="Validate neutral skill without building pools")
+    neutral.add_argument("--trajectories", required=True)
+    neutral.add_argument("--checkpoint", required=True)
+    neutral.add_argument("--tokens")
+    neutral.add_argument("--output-dir", default="outputs/neutral")
+    neutral.add_argument("--dt", type=float, default=0.1)
+    neutral.add_argument("--damping", type=float, default=1e-4)
+    neutral.add_argument("--batch-size", type=int, default=1024)
     return parser
 
 
@@ -49,6 +57,9 @@ def main() -> None:
             all_scenario_types=args.all_scenario_types,
             shuffle=args.shuffle,
         )
+    elif args.command == "neutral-check":
+        from .neutral import run_neutral_check
+        result = run_neutral_check(args.trajectories, args.checkpoint, args.output_dir, args.tokens, args.dt, args.damping, args.batch_size)
     else:
         from .pipeline import run_pipeline
 
