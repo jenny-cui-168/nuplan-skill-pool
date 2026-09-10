@@ -847,3 +847,79 @@ OMP_NUM_THREADS=1 MPLCONFIGDIR=/tmp/solver-audit-mpl python -m pytest -q
 ```
 
 相关测试：`14 passed, 18 warnings in 6.73s`。全部测试：`46 passed, 18 warnings in 15.72s`。警告均为PyTorch `torch.jit.script`弃用警告。
+
+## Trajectory-space coverage Pool（2026-09-10，基于63d51ce）
+
+新方法只覆盖当前nuPlan mini提取数据与冻结VAE共同支持的经验可行未来轨迹空间，不声称覆盖所有理论上物理可行轨迹。原有local baseline、V1 Pool、split、中性技能、geodesic实验和VAE checkpoint均未改动；全目录哈希清单在运行前后通过`cmp`完全一致。本阶段未继续运行LBFGS Log、未建立graph geodesic、未重建旧Pool，也未接入PufferDrive。
+
+### 候选、距离与选择
+
+冻结decoder对46,514条construction latent进行批量解码，全部轨迹有限。宽松物理异常过滤检查了非有限值、绝对坐标超过150 m、平均速度超过50 m/s、瞬时速度超过80 m/s和速度标准差超过30 m/s；各项拒绝数均为0。过滤不使用横向位移、航向变化或曲率阈值，因此没有因低频或强转弯删除候选。候选描述量保存在`trajectory_coverage_pool/candidate_descriptors.npz`。
+
+实现并比较了两种全30点距离：
+
+- A：30点欧氏ADE；
+- B：按construction候选逐时刻、逐坐标IQR/1.349尺度归一化的30点距离，终点权重为2。尺度下限由construction全局尺度的5%与固定数值稳定下限共同确定。
+
+1,000条construction冒烟实验没有接触held-out。A在construction物理空间mean/P90/P95 minADE以及速度类别覆盖上均优于B，因此在held-out评估前固定A为正式方法；B的尺度、参数和完整128项选择序列仍保留用于比较。FPS从固定z0开始，按最多4,096条一批计算新技能到候选的距离，仅维护长度N的当前最小距离，没有构造N×N候选距离矩阵。
+
+skill 0与construction中性产物的latent、source index `8052`、token `23383639f1415edc`和decoder轨迹逐元素完全一致。三个Pool使用同一序列，K=32严格等于K=64前32项，K=64严格等于K=128前64项。所有source index均属于construction且仍指向原始57,992行。
+
+### 覆盖结果
+
+以下为完整construction/held-out对真实轨迹的ADE覆盖。完整minFDE、FDE-at-minADE、P50/P90/P95/max、assignment counts、最差source/token/type及逐场景指标均在`trajectory_coverage_pool/report.json`。
+
+| K | split | minADE mean | P50 | P90 | P95 | max | used skills |
+|---:|---|---:|---:|---:|---:|---:|---:|
+| 32 | construction | 0.4247 | 0.3615 | 0.9457 | 1.0292 | 1.6232 | 32/32 |
+| 32 | held-out | 0.4407 | 0.3845 | 0.9576 | 1.0399 | 2.2368 | 26/32 |
+| 64 | construction | 0.2994 | 0.2733 | 0.6374 | 0.7015 | 1.5230 | 64/64 |
+| 64 | held-out | 0.3167 | 0.3026 | 0.6600 | 0.7228 | 2.2368 | 48/64 |
+| 128 | construction | 0.2344 | 0.2253 | 0.4831 | 0.5221 | 1.5230 | 128/128 |
+| 128 | held-out | 0.2487 | 0.2417 | 0.4997 | 0.5581 | 2.0760 | 91/128 |
+
+Held-out FDE指标：
+
+| K | minFDE mean/P90/P95/max | FDE-at-minADE mean/P90/P95/max |
+|---:|---|---|
+| 32 | 0.8423 / 2.0195 / 2.2218 / 4.9372 | 1.0190 / 2.4671 / 2.7840 / 5.0141 |
+| 64 | 0.5563 / 1.3558 / 1.6162 / 4.9372 | 0.7663 / 1.8435 / 2.1537 / 5.0141 |
+| 128 | 0.3824 / 0.7915 / 1.0305 / 4.2394 | 0.6016 / 1.4190 / 1.6766 / 4.5609 |
+
+Pool pairwise ADE的min/P10/mean分别为：K=32 `1.4045/2.2308/6.6947 m`，K=64 `0.9833/1.9253/6.5508 m`，K=128 `0.6596/1.7813/6.2308 m`。
+
+K=32/64/128的速度计数分别为：slow `4/9/17`、medium `18/35/71`、fast `10/20/40`，冻结decoder候选中没有平均速度低于0.2 m/s的已选技能。负X/中心/正X终点为`10/11/11`、`22/21/21`、`44/41/43`；直行/轻转/中转/强转为`3/10/6/13`、`8/19/14/23`、`16/43/30/39`。该分布说明两侧、不同前进距离和转弯强度都随K增长。
+
+Held-out最差minADE轨迹：K=32和64均为source `43856`、token `c19f7424ae815a7a`、`high_magnitude_speed`；K=128为source `31761`、token `8cb055e09bae5a26`、同一类型。样本不足场景只保留描述值：`behind_long_vehicle=1`、`changing_lane=2`、`following_lane_with_lead=0`、`stopping_with_lead=0`，不作泛化结论。
+
+### 与local baseline比较
+
+在相同split和真实轨迹指标下，新方法显著减少重合：K=64最近技能对从local baseline的`2.23e-5 m`提高到`0.9833 m`；目视结果也由多条重合轨迹变为覆盖左右与不同前进距离的扇形。
+
+相对local baseline，trajectory-space Pool的held-out minADE改进为：
+
+| K | mean | P90 | P95 | max |
+|---:|---:|---:|---:|---:|
+| 32 | 30.81% | 56.56% | 58.34% | 38.72% |
+| 64 | 32.37% | 53.04% | 59.46% | 25.70% |
+
+K=64增加到128仍有实质收益：held-out mean/P90/P95/max分别再下降`21.47%/24.28%/22.77%/7.19%`。尾部与总体覆盖继续改善，但最坏案例改善幅度小于P90/P95。
+
+### 产物与人工检查
+
+正式产物位于`trajectory_coverage_pool/`，包括K=32/64/128的NPZ/PT Pool、construction/held-out覆盖数组、候选source/latent/decoder轨迹、A/B选择序列、尺度、过滤报告、FPS报告和总报告。1,000条construction-only冒烟结果保存在`trajectory_coverage_smoke/`。
+
+每个K均生成并人工打开检查：带编号Pool、干净扇形、技能终点、construction终点密度背景、横向×前向终点覆盖、行为计数、技能使用次数、最接近技能对，以及held-out最好/P50/P90/P95/最差案例。三组图统一使用X横向、Y前向和相同轨迹坐标范围，并标出ego原点及skill 0。人工检查确认K增加时扇形与终点支持逐步增密，没有明显重复轨迹占满Pool；最接近技能对和最差held-out案例与JSON一致。
+
+关键图：`skill_pool_clean_32.png`、`skill_pool_clean_64.png`、`skill_pool_clean_128.png`、`endpoint_density_32.png`、`endpoint_density_64.png`、`endpoint_density_128.png`、`nearest_skill_examples_32.png`、`nearest_skill_examples_64.png`、`nearest_skill_examples_128.png`、`coverage_comparison.png`。
+
+### 命令与测试
+
+```bash
+OMP_NUM_THREADS=1 MPLCONFIGDIR=/tmp/trajectory-coverage-mpl python -m pytest -q tests/test_trajectory_coverage.py -k 'not formal and not selection_is'
+OMP_NUM_THREADS=1 MPLCONFIGDIR=/tmp/trajectory-coverage-mpl python -m skill_pool.trajectory_coverage --output-dir trajectory_coverage_smoke --candidate-limit 1000
+OMP_NUM_THREADS=1 MPLCONFIGDIR=/tmp/trajectory-coverage-mpl python -m skill_pool.trajectory_coverage --output-dir trajectory_coverage_pool
+OMP_NUM_THREADS=1 MPLCONFIGDIR=/tmp/trajectory-coverage-mpl python -m pytest -q
+```
+
+合成测试先通过`3 passed`，正式流程相关测试通过。最终全部测试：`52 passed, 18 warnings in 15.11s`；18条均为既有PyTorch `torch.jit.script`弃用警告。

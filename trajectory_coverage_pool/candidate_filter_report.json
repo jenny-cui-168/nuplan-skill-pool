@@ -1,0 +1,34 @@
+{
+  "input_count": 46514,
+  "accepted_count": 46514,
+  "rejected_count": 0,
+  "exclusive_reason_counts": {},
+  "overlapping_reason_counts": {
+    "nonfinite": 0,
+    "coordinate_over_150m": 0,
+    "mean_speed_over_50mps": 0,
+    "instantaneous_speed_over_80mps": 0,
+    "speed_std_over_30mps": 0
+  },
+  "bounds": {
+    "max_abs_coordinate_m": 150.0,
+    "max_mean_speed_mps": 50.0,
+    "max_instantaneous_speed_mps": 80.0,
+    "max_speed_std_mps": 30.0
+  },
+  "turn_preservation": "No lateral, heading-change, or curvature cutoff is applied.",
+  "candidate_limit": null,
+  "descriptor_file": "candidate_descriptors.npz",
+  "descriptor_fields": [
+    "mean_speed_mps",
+    "speed_change_mps",
+    "speed_std_mps",
+    "max_step_speed_mps",
+    "final_forward_m",
+    "final_lateral_m",
+    "max_lateral_m",
+    "max_abs_coordinate_m",
+    "heading_change_deg",
+    "max_curvature_inv_m"
+  ]
+}
