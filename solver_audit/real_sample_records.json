@@ -1,0 +1,622 @@
+[
+  {
+    "source_index": 49159,
+    "initial_energy": 7.917647792408838,
+    "final_energy": 7.917647792408838,
+    "initial_raw_gradient_infinity_norm": 0.7549079175909474,
+    "initial_normalized_gradient_infinity_norm": 0.09534497332840779,
+    "final_raw_gradient_infinity_norm": 0.7549079175909473,
+    "final_normalized_gradient_infinity_norm": 0.09534497332840777,
+    "max_path_node_movement": 0.0,
+    "energy_relative_decrease": 0.0,
+    "lbfgs_step_count": 100,
+    "closure_evaluation_count": 302,
+    "converged": false,
+    "failure_reason": "Nonconvergence: normalized energy gradient infinity norm 0.095345 exceeds 0.0001; budget 100",
+    "runtime_seconds": 4.837997956012259,
+    "native_single_step_control": {
+      "initial_energy": 7.917647792408838,
+      "final_energy": 7.897584763003784,
+      "energy_relative_decrease": 0.002533963360215343,
+      "raw_gradient_infinity_norm": 0.7351909413202968,
+      "normalized_gradient_infinity_norm": 0.09285471652643756,
+      "max_internal_node_movement": 0.002881334155253157,
+      "closure_evaluation_count": 127,
+      "optimizer_state_n_iter": 7,
+      "log_vector": [
+        0.7618428458642246,
+        0.7030673435714636,
+        0.560061974396568,
+        1.0343925213478062,
+        -0.8704165477001808,
+        1.5607031847303308,
+        1.9986111799580435,
+        -1.3319468352294699
+      ],
+      "converged_under_current_threshold": false
+    },
+    "optimized_path_activation_boundaries": {
+      "activation_changes_per_segment_by_relu_layer": [
+        [
+          4,
+          2,
+          1,
+          2,
+          1,
+          4,
+          2,
+          5
+        ],
+        [
+          0,
+          0,
+          4,
+          1,
+          4,
+          1,
+          4,
+          4
+        ]
+      ],
+      "segments_with_any_activation_change": 8
+    }
+  },
+  {
+    "source_index": 40090,
+    "initial_energy": 68.8036960191294,
+    "final_energy": 68.8036960191294,
+    "initial_raw_gradient_infinity_norm": 32.528111706403145,
+    "initial_normalized_gradient_infinity_norm": 0.47276692370362483,
+    "final_raw_gradient_infinity_norm": 32.52811170640313,
+    "final_normalized_gradient_infinity_norm": 0.4727669237036246,
+    "max_path_node_movement": 0.0,
+    "energy_relative_decrease": 0.0,
+    "lbfgs_step_count": 100,
+    "closure_evaluation_count": 302,
+    "converged": false,
+    "failure_reason": "Nonconvergence: normalized energy gradient infinity norm 0.472767 exceeds 0.0001; budget 100",
+    "runtime_seconds": 6.314935741989757,
+    "native_single_step_control": {
+      "initial_energy": 68.8036960191294,
+      "final_energy": 63.87158129764346,
+      "energy_relative_decrease": 0.07168386303135046,
+      "raw_gradient_infinity_norm": 10.301728590359108,
+      "normalized_gradient_infinity_norm": 0.1497263837032088,
+      "max_internal_node_movement": 0.1729497846529131,
+      "closure_evaluation_count": 127,
+      "optimizer_state_n_iter": 6,
+      "log_vector": [
+        -2.169318880214192,
+        -2.0529886181584036,
+        -2.1735008558279656,
+        -0.9748199325148477,
+        0.001744741484277057,
+        1.9174497004275857,
+        1.9808571700648372,
+        -3.449158498729595
+      ],
+      "converged_under_current_threshold": false
+    },
+    "optimized_path_activation_boundaries": {
+      "activation_changes_per_segment_by_relu_layer": [
+        [
+          4,
+          6,
+          9,
+          3,
+          5,
+          11,
+          10,
+          15
+        ],
+        [
+          1,
+          0,
+          2,
+          2,
+          3,
+          2,
+          8,
+          14
+        ]
+      ],
+      "segments_with_any_activation_change": 8
+    }
+  },
+  {
+    "source_index": 42219,
+    "initial_energy": 0.10697940180320717,
+    "final_energy": 0.10697940180320717,
+    "initial_raw_gradient_infinity_norm": 0.46109197968700105,
+    "initial_normalized_gradient_infinity_norm": 4.310100560621922,
+    "final_raw_gradient_infinity_norm": 0.4610919796870011,
+    "final_normalized_gradient_infinity_norm": 4.3101005606219225,
+    "max_path_node_movement": 0.0,
+    "energy_relative_decrease": 0.0,
+    "lbfgs_step_count": 100,
+    "closure_evaluation_count": 302,
+    "converged": false,
+    "failure_reason": "Nonconvergence: normalized energy gradient infinity norm 4.3101 exceeds 0.0001; budget 100",
+    "runtime_seconds": 5.580241964009474,
+    "native_single_step_control": {
+      "initial_energy": 0.10697940180320717,
+      "final_energy": 0.04455914502962425,
+      "energy_relative_decrease": 0.5834792092818714,
+      "raw_gradient_infinity_norm": 0.07580958038025434,
+      "normalized_gradient_infinity_norm": 0.7086371684869678,
+      "max_internal_node_movement": 0.06130115016834542,
+      "closure_evaluation_count": 124,
+      "optimizer_state_n_iter": 17,
+      "log_vector": [
+        -0.14605510472989458,
+        -0.16292279342466642,
+        -0.5246665704900586,
+        0.90560711420388,
+        -0.712246410177567,
+        -0.16560952973677523,
+        -1.054749581430574,
+        -0.05059947630752504
+      ],
+      "converged_under_current_threshold": false
+    },
+    "optimized_path_activation_boundaries": {
+      "activation_changes_per_segment_by_relu_layer": [
+        [
+          0,
+          0,
+          3,
+          1,
+          3,
+          1,
+          3,
+          0
+        ],
+        [
+          1,
+          0,
+          0,
+          1,
+          2,
+          0,
+          3,
+          0
+        ]
+      ],
+      "segments_with_any_activation_change": 6
+    }
+  },
+  {
+    "source_index": 49172,
+    "initial_energy": 39.61337042219114,
+    "final_energy": 38.04539859410958,
+    "initial_raw_gradient_infinity_norm": 6.80924683083693,
+    "initial_normalized_gradient_infinity_norm": 0.17189264024407366,
+    "final_raw_gradient_infinity_norm": 5.025495221488654,
+    "final_normalized_gradient_infinity_norm": 0.12686361114764944,
+    "max_path_node_movement": 0.06950731320668617,
+    "energy_relative_decrease": 0.03958188387835824,
+    "lbfgs_step_count": 100,
+    "closure_evaluation_count": 302,
+    "converged": false,
+    "failure_reason": "Nonconvergence: normalized energy gradient infinity norm 0.126864 exceeds 0.0001; budget 100",
+    "runtime_seconds": 5.955134339994402,
+    "native_single_step_control": {
+      "initial_energy": 39.61337042219114,
+      "final_energy": 37.61360346245321,
+      "energy_relative_decrease": 0.05048212102188785,
+      "raw_gradient_infinity_norm": 4.558859527903218,
+      "normalized_gradient_infinity_norm": 0.11508385879100497,
+      "max_internal_node_movement": 0.0763950404793492,
+      "closure_evaluation_count": 85,
+      "optimizer_state_n_iter": 5,
+      "log_vector": [
+        -2.143555688075251,
+        -2.023124899868737,
+        -2.5792614344734517,
+        0.2979439551765104,
+        -0.9921135164443289,
+        0.34762220479573536,
+        -1.6292092545954917,
+        -1.9887666323990913
+      ],
+      "converged_under_current_threshold": false
+    },
+    "optimized_path_activation_boundaries": {
+      "activation_changes_per_segment_by_relu_layer": [
+        [
+          6,
+          2,
+          8,
+          4,
+          4,
+          2,
+          4,
+          8
+        ],
+        [
+          2,
+          3,
+          1,
+          1,
+          1,
+          2,
+          2,
+          3
+        ]
+      ],
+      "segments_with_any_activation_change": 8
+    }
+  },
+  {
+    "source_index": 56031,
+    "initial_energy": 1.5796066081501232,
+    "final_energy": 1.5796066081501232,
+    "initial_raw_gradient_infinity_norm": 0.1637853047874651,
+    "initial_normalized_gradient_infinity_norm": 0.10368740162417656,
+    "final_raw_gradient_infinity_norm": 0.16378530478746492,
+    "final_normalized_gradient_infinity_norm": 0.10368740162417645,
+    "max_path_node_movement": 0.0,
+    "energy_relative_decrease": 0.0,
+    "lbfgs_step_count": 100,
+    "closure_evaluation_count": 302,
+    "converged": false,
+    "failure_reason": "Nonconvergence: normalized energy gradient infinity norm 0.103687 exceeds 0.0001; budget 100",
+    "runtime_seconds": 5.700215132004814,
+    "native_single_step_control": {
+      "initial_energy": 1.5796066081501232,
+      "final_energy": 1.5762513782136547,
+      "energy_relative_decrease": 0.0021240921120213832,
+      "raw_gradient_infinity_norm": 0.24193353339695245,
+      "normalized_gradient_infinity_norm": 0.15316062375826645,
+      "max_internal_node_movement": 0.019728966562982286,
+      "closure_evaluation_count": 127,
+      "optimizer_state_n_iter": 4,
+      "log_vector": [
+        0.34092837295171563,
+        0.2932011998741011,
+        -0.03787182515911525,
+        1.2364990276951104,
+        -0.06458591315543138,
+        0.5145350926284582,
+        0.5869391593022693,
+        -0.5708352509980976
+      ],
+      "converged_under_current_threshold": false
+    },
+    "optimized_path_activation_boundaries": {
+      "activation_changes_per_segment_by_relu_layer": [
+        [
+          2,
+          2,
+          0,
+          0,
+          0,
+          0,
+          2,
+          2
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          1,
+          2,
+          0,
+          2
+        ]
+      ],
+      "segments_with_any_activation_change": 6
+    }
+  },
+  {
+    "source_index": 53612,
+    "initial_energy": 10.464683359034005,
+    "final_energy": 10.359949630151972,
+    "initial_raw_gradient_infinity_norm": 1.127468714897648,
+    "initial_normalized_gradient_infinity_norm": 0.10774035641740858,
+    "final_raw_gradient_infinity_norm": 1.2762774524085778,
+    "final_normalized_gradient_infinity_norm": 0.12196044625724739,
+    "max_path_node_movement": 0.05536707203690039,
+    "energy_relative_decrease": 0.010008303671378484,
+    "lbfgs_step_count": 100,
+    "closure_evaluation_count": 302,
+    "converged": false,
+    "failure_reason": "Nonconvergence: normalized energy gradient infinity norm 0.12196 exceeds 0.0001; budget 100",
+    "runtime_seconds": 5.882635399000719,
+    "native_single_step_control": {
+      "initial_energy": 10.464683359034005,
+      "final_energy": 10.21836664012985,
+      "energy_relative_decrease": 0.02353790463153521,
+      "raw_gradient_infinity_norm": 1.2182758267411609,
+      "normalized_gradient_infinity_norm": 0.11641783940738556,
+      "max_internal_node_movement": 0.11124708525817861,
+      "closure_evaluation_count": 118,
+      "optimizer_state_n_iter": 4,
+      "log_vector": [
+        0.920207284918451,
+        0.8265769278305211,
+        -0.034809428164546574,
+        2.539912087787836,
+        -1.1892002710713259,
+        1.8061592024031885,
+        1.7522119243391288,
+        -2.083499936084298
+      ],
+      "converged_under_current_threshold": false
+    },
+    "optimized_path_activation_boundaries": {
+      "activation_changes_per_segment_by_relu_layer": [
+        [
+          3,
+          0,
+          2,
+          2,
+          3,
+          3,
+          6,
+          8
+        ],
+        [
+          0,
+          1,
+          5,
+          1,
+          1,
+          4,
+          4,
+          6
+        ]
+      ],
+      "segments_with_any_activation_change": 8
+    }
+  },
+  {
+    "source_index": 16746,
+    "initial_energy": 15.783861459190986,
+    "final_energy": 14.825012691830198,
+    "initial_raw_gradient_infinity_norm": 4.430686611014853,
+    "initial_normalized_gradient_infinity_norm": 0.28070992782535176,
+    "final_raw_gradient_infinity_norm": 6.73467555567789,
+    "final_normalized_gradient_infinity_norm": 0.4266811117856252,
+    "max_path_node_movement": 0.08709702938316766,
+    "energy_relative_decrease": 0.060748681166511866,
+    "lbfgs_step_count": 100,
+    "closure_evaluation_count": 302,
+    "converged": false,
+    "failure_reason": "Nonconvergence: normalized energy gradient infinity norm 0.426681 exceeds 0.0001; budget 100",
+    "runtime_seconds": 4.110410912995576,
+    "native_single_step_control": {
+      "initial_energy": 15.783861459190986,
+      "final_energy": 13.938113188673857,
+      "energy_relative_decrease": 0.11693895535571525,
+      "raw_gradient_infinity_norm": 2.906248887467823,
+      "normalized_gradient_infinity_norm": 0.18412787612092896,
+      "max_internal_node_movement": 0.33976752512650765,
+      "closure_evaluation_count": 127,
+      "optimizer_state_n_iter": 7,
+      "log_vector": [
+        -2.0891139179384535,
+        -1.4670399698648158,
+        -1.9947717986197286,
+        -2.025606864342725,
+        -1.6807985263409062,
+        0.6081668430578233,
+        -0.7012040934606327,
+        -1.9452603649834295
+      ],
+      "converged_under_current_threshold": false
+    },
+    "optimized_path_activation_boundaries": {
+      "activation_changes_per_segment_by_relu_layer": [
+        [
+          5,
+          3,
+          4,
+          2,
+          4,
+          7,
+          1,
+          4
+        ],
+        [
+          1,
+          0,
+          1,
+          1,
+          3,
+          1,
+          0,
+          1
+        ]
+      ],
+      "segments_with_any_activation_change": 8
+    }
+  },
+  {
+    "source_index": 25024,
+    "initial_energy": 12.070447423745925,
+    "final_energy": 12.070447423745925,
+    "initial_raw_gradient_infinity_norm": 4.023142804532867,
+    "initial_normalized_gradient_infinity_norm": 0.3333051926988412,
+    "final_raw_gradient_infinity_norm": 4.0231428045328705,
+    "final_normalized_gradient_infinity_norm": 0.3333051926988415,
+    "max_path_node_movement": 0.0,
+    "energy_relative_decrease": 0.0,
+    "lbfgs_step_count": 100,
+    "closure_evaluation_count": 302,
+    "converged": false,
+    "failure_reason": "Nonconvergence: normalized energy gradient infinity norm 0.333305 exceeds 0.0001; budget 100",
+    "runtime_seconds": 4.404817266011378,
+    "native_single_step_control": {
+      "initial_energy": 12.070447423745925,
+      "final_energy": 10.784736443962256,
+      "energy_relative_decrease": 0.1065172594393078,
+      "raw_gradient_infinity_norm": 1.6569907179569696,
+      "normalized_gradient_infinity_norm": 0.13727666090464952,
+      "max_internal_node_movement": 0.29152026900080164,
+      "closure_evaluation_count": 127,
+      "optimizer_state_n_iter": 11,
+      "log_vector": [
+        -1.9295008181324302,
+        -1.2248087171967494,
+        -1.598629217575903,
+        -2.4802050550112735,
+        0.4014151051496313,
+        1.0667331594523937,
+        0.917260871585313,
+        -2.1735991095937415
+      ],
+      "converged_under_current_threshold": false
+    },
+    "optimized_path_activation_boundaries": {
+      "activation_changes_per_segment_by_relu_layer": [
+        [
+          3,
+          6,
+          5,
+          5,
+          2,
+          5,
+          4,
+          8
+        ],
+        [
+          1,
+          0,
+          1,
+          1,
+          0,
+          3,
+          0,
+          0
+        ]
+      ],
+      "segments_with_any_activation_change": 8
+    }
+  },
+  {
+    "source_index": 33842,
+    "initial_energy": 0.025004068799470026,
+    "final_energy": 0.025004068799470026,
+    "initial_raw_gradient_infinity_norm": 0.030231997571727537,
+    "initial_normalized_gradient_infinity_norm": 1.2090831221984288,
+    "final_raw_gradient_infinity_norm": 0.03023199757172756,
+    "final_normalized_gradient_infinity_norm": 1.2090831221984297,
+    "max_path_node_movement": 0.0,
+    "energy_relative_decrease": 0.0,
+    "lbfgs_step_count": 100,
+    "closure_evaluation_count": 302,
+    "converged": false,
+    "failure_reason": "Nonconvergence: normalized energy gradient infinity norm 1.20908 exceeds 0.0001; budget 100",
+    "runtime_seconds": 6.696337125002174,
+    "native_single_step_control": {
+      "initial_energy": 0.025004068799470026,
+      "final_energy": 0.02463031268271281,
+      "energy_relative_decrease": 0.014947811884325656,
+      "raw_gradient_infinity_norm": 0.005703470453142156,
+      "normalized_gradient_infinity_norm": 0.22810169412359976,
+      "max_internal_node_movement": 0.0054814525928896796,
+      "closure_evaluation_count": 106,
+      "optimizer_state_n_iter": 13,
+      "log_vector": [
+        -0.010590121732901636,
+        -0.005891896537375985,
+        -0.02408533002453872,
+        -0.37772763303124,
+        -0.46298660907524614,
+        0.08614846111124663,
+        0.00901064668703988,
+        -0.16794519040823985
+      ],
+      "converged_under_current_threshold": false
+    },
+    "optimized_path_activation_boundaries": {
+      "activation_changes_per_segment_by_relu_layer": [
+        [
+          0,
+          1,
+          0,
+          1,
+          0,
+          1,
+          0,
+          0
+        ],
+        [
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "segments_with_any_activation_change": 3
+    }
+  },
+  {
+    "source_index": 49254,
+    "initial_energy": 11.807967601752145,
+    "final_energy": 11.758514138161381,
+    "initial_raw_gradient_infinity_norm": 1.1257169039347197,
+    "initial_normalized_gradient_infinity_norm": 0.09533536522980282,
+    "final_raw_gradient_infinity_norm": 1.2912268294841893,
+    "final_normalized_gradient_infinity_norm": 0.10935216567604644,
+    "max_path_node_movement": 0.046544469997463755,
+    "energy_relative_decrease": 0.004188143570399492,
+    "lbfgs_step_count": 100,
+    "closure_evaluation_count": 302,
+    "converged": false,
+    "failure_reason": "Nonconvergence: normalized energy gradient infinity norm 0.109352 exceeds 0.0001; budget 100",
+    "runtime_seconds": 6.871088450003299,
+    "native_single_step_control": {
+      "initial_energy": 11.807967601752145,
+      "final_energy": 11.66733148834509,
+      "energy_relative_decrease": 0.011910272635418355,
+      "raw_gradient_infinity_norm": 1.0060714914653597,
+      "normalized_gradient_infinity_norm": 0.08520276523421966,
+      "max_internal_node_movement": 0.08755667909163112,
+      "closure_evaluation_count": 127,
+      "optimizer_state_n_iter": 4,
+      "log_vector": [
+        1.014913670367834,
+        0.9414720740345359,
+        0.14727234082695695,
+        2.1394583192789334,
+        -1.5603024067431672,
+        1.8828160376187295,
+        1.9732341688062025,
+        -2.0885610636917242
+      ],
+      "converged_under_current_threshold": false
+    },
+    "optimized_path_activation_boundaries": {
+      "activation_changes_per_segment_by_relu_layer": [
+        [
+          3,
+          1,
+          2,
+          1,
+          4,
+          2,
+          3,
+          7
+        ],
+        [
+          0,
+          2,
+          4,
+          2,
+          2,
+          4,
+          6,
+          7
+        ]
+      ],
+      "segments_with_any_activation_change": 8
+    }
+  }
+]

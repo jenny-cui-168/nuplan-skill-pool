@@ -785,3 +785,65 @@ tests/test_geodesic.py: 18 warnings
 补充数值诊断：默认100条中50条能量下降超过相对1e-8，平均下降3.3432%，中位下降0.1333%；最终归一化梯度残差P50=0.2105、P90=1.2060，远高于1e-4。4点/2点能量相对差P90=4.7585%、最大6.7392%，因此即使只看能量也尚未得到分辨率稳定的保证。
 
 代理已打开并目视检查五张最终诊断图。最大差异样本1390的暂定向量夹角92.55°、相对误差1.3990，但求解失败；图片和报告均明确保留失败标记。中性、现有V1 Pool和数据split未变。全部测试中的旧建库测试仅使用pytest临时合成数据，不是重建正式Pool。
+
+## Geodesic solver 收敛失败审计（2026-09-10，基于50fa07a）
+
+本次只运行线性、平滑tanh、ReLU toy case和固定的前10条construction候选。没有运行1,000条，未建立graph geodesic，未重建Pool，未修改或训练VAE，也未接入PufferDrive。
+
+### 四选一结论
+
+- **A. solver实现错误：选择。** `path_energy`及其梯度本身正确，但当前solver把LBFGS配置为`max_iter=1`，再从外层重复调用`optimizer.step`。平滑L=8在250次step、752次closure后归一化残差仍为`1.139784e-2`；同配置的一次标准LBFGS控制调用在118个LBFGS迭代、193次closure后达到`1.700240e-8`。固定10条真实样本中有6条在100次step、302次closure后恢复为零移动初始路径。端点固定正确，best-path恢复后也确实重算了梯度；问题集中在LBFGS控制流及其与best-path选择的组合，而不是陈旧梯度或端点漂移。
+- **B. 收敛判据尺度不合理：选择。** 当前判据`||∇E||∞ / E_initial <= 1e-4`带有latent坐标倒数的量纲；即使常数metric下，它也随端点位移尺度变化，因此不能跨样本解释为同一相对精度。本次没有改变阈值，也没有把任何失败重新标为成功。后续建议以`||∇E||∞ / max(||∇E_initial||∞, floor)`作为无量纲的一阶残差，并同时保留绝对梯度下限、能量不升、有限值、端点固定和相对步长/能量变化检查。
+- **C. ReLU非光滑性是主要原因：选择。** 修正控制流的对照中，平滑tanh的L=8/L=16和同激活区ReLU均达到原梯度阈值；跨激活边界ReLU仍未达到，残差为`1.823865e-1`，路径有4个激活变化段。10条真实路径全部穿过decoder激活边界，每条8段中有3至8段发生变化。证据表明ReLU边界是修复LBFGS控制流后仍存在的主要数值障碍，但不能证明它是所有真实样本失败的唯一原因。
+- **D. 证据不足：不选择。** A、B、C均有受控实验或真实样本证据。
+
+### Toy与梯度检查
+
+线性decoder的Jacobian和metric沿路径为常数。直线路径内部点初始梯度无穷范数为`1.804112e-16`，返回Log与`target-z0`的L2误差为`2.937374e-16`，路径未移动且通过收敛检查。
+
+平滑tanh控制实验的L=8与L=16都降低能量并达到原`1e-5`阈值。两者最终能量相对差为`0.6874%`，Log向量相对L2差为`10.2484%`：能量已经接近，初始切向量仍有可见的离散化敏感性，不能视为高精度一致。
+
+中心有限差分全部通过。四类case的最大绝对/显著分量最大相对误差如下：
+
+| case | 最大绝对误差 | 最大相对误差 |
+|---|---:|---:|
+| linear | 1.387783e-11 | 0 |
+| smooth tanh | 1.406490e-10 | 4.091938e-9 |
+| ReLU同激活区 | 1.387973e-11 | 0 |
+| ReLU跨边界 | 4.388510e-9 | 5.607008e-8 |
+
+相对误差只对幅值大于`max(1e-6 * ||g||∞, 1e-8)`的分量统计，避免用接近零的分母制造无意义的大相对误差；完整分量结果和使用`1e-8`分母下限的结果都保存在JSON中。
+
+### 固定10条真实候选
+
+原始source index为`49159, 40090, 42219, 49172, 56031, 53612, 16746, 25024, 33842, 49254`，即已保存construction候选的前10条。当前solver收敛数为`0/10`；最终归一化残差范围为`0.095345`至`4.310101`，相对能量下降范围为`0`至`6.074868%`。标准单次LBFGS控制仍为`0/10`，但其中9条的最终残差低于当前控制流；这说明控制流缺陷是0/100的一部分原因，不能单独解释全部失败。每条样本的初始/最终能量、原始/归一化梯度、最大节点移动、相对能量下降、LBFGS step和closure次数见`solver_audit/audit_report.json`及额外明细`real_sample_records.json`。
+
+### 产物、完整性与目视检查
+
+- `solver_audit/audit_report.json`
+- `solver_audit/gradient_check.json`
+- `solver_audit/toy_energy_curves.png`
+- `solver_audit/relu_activation_boundaries.png`
+- `solver_audit/real_sample_residuals.png`
+
+已人工打开三张图：归一化toy能量曲线与数值记录一致；ReLU同区图没有模式变化，跨边界图显示4个变化段；真实样本图清楚显示原始/归一化残差及只有4条路径获得非零能量下降。
+
+审计前后受保护文件哈希一致：
+
+| 文件 | SHA-256 |
+|---|---|
+| outputs/v1/skill_pool_64.npz | `63561502c719c6a6a8c51c4783a1002b586d6c5fe879c6176ee11936f873784a` |
+| outputs/v1/skill_pool_64.pt | `cbd5a8018c9514aa450e4823aad061bb53fe55c83ec2ac360da2b208e9345744` |
+| outputs/local_baseline/skill_pool_64.npz | `63561502c719c6a6a8c51c4783a1002b586d6c5fe879c6176ee11936f873784a` |
+| outputs/local_baseline/skill_pool_64.pt | `cbd5a8018c9514aa450e4823aad061bb53fe55c83ec2ac360da2b208e9345744` |
+| weights/trajectory_vae_8d_best.pth | `9918138beece445613918bc2c2e9528df3ef8837844347a47e8f15dff96300a9` |
+
+### 命令与测试
+
+```bash
+OMP_NUM_THREADS=1 MPLCONFIGDIR=/tmp/solver-audit-mpl python -m skill_pool.solver_audit
+OMP_NUM_THREADS=1 MPLCONFIGDIR=/tmp/solver-audit-mpl python -m pytest -q tests/test_solver_audit.py tests/test_geodesic.py
+OMP_NUM_THREADS=1 MPLCONFIGDIR=/tmp/solver-audit-mpl python -m pytest -q
+```
+
+相关测试：`14 passed, 18 warnings in 6.73s`。全部测试：`46 passed, 18 warnings in 15.72s`。警告均为PyTorch `torch.jit.script`弃用警告。

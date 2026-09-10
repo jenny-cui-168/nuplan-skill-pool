@@ -1,0 +1,47 @@
+{
+  "linear": {
+    "energy": 0.12230690590495263,
+    "epsilon": 1e-06,
+    "max_absolute_error": 1.387782944117788e-11,
+    "max_relative_error": 0.0,
+    "max_componentwise_relative_error_with_1e-8_floor": 0.001387782944117788,
+    "relative_error_significance_threshold": 1e-08,
+    "autograd_infinity_norm": 9.71445146547012e-17,
+    "finite_difference_infinity_norm": 1.3877787807814457e-11,
+    "passed": true
+  },
+  "smooth_tanh": {
+    "energy": 0.8961052893600694,
+    "epsilon": 1e-06,
+    "max_absolute_error": 1.4064899245269658e-10,
+    "max_relative_error": 4.0919383451185604e-09,
+    "max_componentwise_relative_error_with_1e-8_floor": 4.0919383451185604e-09,
+    "relative_error_significance_threshold": 1.6419556658764378e-07,
+    "autograd_infinity_norm": 0.1641955665319588,
+    "finite_difference_infinity_norm": 0.16419556658764378,
+    "passed": true
+  },
+  "relu_same_region": {
+    "energy": 0.12676227005403176,
+    "epsilon": 1e-06,
+    "max_absolute_error": 1.387973069810755e-11,
+    "max_relative_error": 0.0,
+    "max_componentwise_relative_error_with_1e-8_floor": 0.001387973069810755,
+    "relative_error_significance_threshold": 1e-08,
+    "autograd_infinity_norm": 3.6637359812630166e-15,
+    "finite_difference_infinity_norm": 1.3877787807814457e-11,
+    "passed": true
+  },
+  "relu_cross_boundary": {
+    "energy": 16.228650657142758,
+    "epsilon": 1e-06,
+    "max_absolute_error": 4.388509999841972e-09,
+    "max_relative_error": 5.6070077776743804e-08,
+    "max_componentwise_relative_error_with_1e-8_floor": 0.17763568394002505,
+    "relative_error_significance_threshold": 4.76846002767408e-06,
+    "autograd_infinity_norm": 4.76846002767408,
+    "finite_difference_infinity_norm": 4.76846002328557,
+    "passed": true
+  },
+  "all_passed": true
+}
